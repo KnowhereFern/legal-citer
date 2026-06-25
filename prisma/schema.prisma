@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  clerkOrgId String? @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents     Document[]
+  auditEvents   AuditEvent[]
+  retentionPolicies RetentionPolicy[]
+}
+
+model RetentionPolicy {
+  id             String   @id @default(cuid())
+  orgId          String
+  name           String
+  rawFileHours   Int      @default(24)
+  extractedTextHours Int  @default(48)
+  tempArtifactHours  Int @default(4)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id])
+  documents    Document[]
+  runs         VerificationRun[]
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  orgId         String
+  createdBy     String
+  filename      String
+  contentType   String
+  fileSizeBytes Int
+  documentHash  String
+  storageKey    String
+  retentionMode String   @default("standard")
+  retentionPolicyId String?
+  uploadedAt    DateTime @default(now())
+
+  organization    Organization     @relation(fields: [orgId], references: [id])
+  retentionPolicy RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id])
+  runs            VerificationRun[]
+}
+
+model VerificationRun {
+  id             String   @id @default(cuid())
+  orgId          String
+  createdBy      String
+  documentId     String
+  status         String   @default("queued")
+  retentionPolicyId String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failureReason  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  document        Document         @relation(fields: [documentId], references: [id])
+  retentionPolicy RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id])
+  findings        Finding[]
+  reports         Report[]
+  pipelineStages  PipelineStage[]
+}
+
+model PipelineStage {
+  id            String   @id @default(cuid())
+  runId         String
+  stageName     String
+  status        String   @default("pending")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  failureDetail String?
+  output        Json?
+  createdAt     DateTime @default(now())
+
+  run VerificationRun @relation(fields: [runId], references: [id])
+}
+
+model Finding {
+  id             String   @id @default(cuid())
+  runId          String
+  citationText   String?
+  checkType      String
+  result         String
+  sourceQueried  String?
+  snippetUsed    String?
+  ruleId         String?
+  isAiAssisted   Boolean  @default(false)
+  aiModelName    String?
+  aiModelVersion String?
+  reviewerState  String   @default("unreviewed")
+  severity       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  run        VerificationRun @relation(fields: [runId], references: [id])
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  runId         String
+  reportType    String   @default("full")
+  status        String   @default("pending")
+  riskBand      String?
+  coveragePct   Float?
+  citationCount Int?
+  quoteIssues   Int?
+  unresolvedItems Int?
+  artifactKey   String?
+  artifactFormat String?
+  documentHash  String?
+  generatedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  run VerificationRun @relation(fields: [runId], references: [id])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  orgId       String
+  eventType   String
+  actorId     String?
+  subjectType String?
+  subjectId   String?
+  detail      Json?
+  createdAt   DateTime @default(now())
+
+  organization Organization    @relation(fields: [orgId], references: [id])
+
+  @@index([subjectType, subjectId])
+  @@index([orgId, createdAt])
+}
+
+model VerificationManifest {
+  id              String   @id @default(cuid())
+  runId           String   @unique
+  documentHash    String
+  manifestHash    String
+  signature       String?
+  signedAt        DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([documentHash])
+}

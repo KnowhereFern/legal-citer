@@ -1,0 +1,209 @@
+import { createHash } from "crypto";
+import { mkdir, rm } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+
+import { prisma } from "@/lib/db";
+import { RUN_STATUS, FINDING_RESULT } from "@/lib/constants";
+import type { CheckResult, PipelineConfig } from "@/lib/types";
+
+import { extractDocument } from "../extractor";
+import { getAllChecks } from "../checks";
+import { createResolver } from "../resolvers";
+import { computeScore } from "../scoring";
+
+async function updateStage(
+  runId: string,
+  stageName: string,
+  status: "running" | "completed" | "failed",
+  output?: Record<string, unknown>,
+  failureDetail?: string
+) {
+  const existing = await prisma.pipelineStage.findFirst({
+    where: { runId, stageName },
+  });
+
+  if (existing) {
+    await prisma.pipelineStage.update({
+      where: { id: existing.id },
+      data: {
+        status,
+        ...(status === "running" ? { startedAt: new Date() } : {}),
+        ...(status === "completed" || status === "failed"
+          ? { completedAt: new Date() }
+          : {}),
+        ...(output ? { output: JSON.parse(JSON.stringify(output)) as never } : {}),
+        ...(failureDetail ? { failureDetail } : {}),
+      },
+    });
+  } else {
+    await prisma.pipelineStage.create({
+      data: {
+        runId,
+        stageName,
+        status,
+        startedAt: status === "running" ? new Date() : undefined,
+        completedAt:
+          status === "completed" || status === "failed"
+            ? new Date()
+            : undefined,
+        output: output ? (JSON.parse(JSON.stringify(output)) as never) : undefined,
+        failureDetail: failureDetail ?? undefined,
+      },
+    });
+  }
+}
+
+async function failRun(runId: string, reason: string) {
+  await prisma.verificationRun.update({
+    where: { id: runId },
+    data: {
+      status: RUN_STATUS.FAILED,
+      failureReason: reason,
+      completedAt: new Date(),
+    },
+  });
+}
+
+export async function runVerification(params: {
+  runId: string;
+  documentBuffer: Buffer;
+  contentType: string;
+  config: PipelineConfig;
+}): Promise<void> {
+  const { runId, documentBuffer, contentType, config } = params;
+  let workspace: string | undefined;
+
+  try {
+    await prisma.verificationRun.update({
+      where: { id: runId },
+      data: { status: RUN_STATUS.RUNNING, startedAt: new Date() },
+    });
+
+    workspace = join(tmpdir(), `legal-citer-${runId}`);
+    await mkdir(workspace, { recursive: true });
+
+    if (documentBuffer.length > config.fileSizeLimit) {
+      await failRun(runId, "File exceeds size limit");
+      return;
+    }
+
+    const documentHash = createHash("sha256")
+      .update(documentBuffer)
+      .digest("hex");
+
+    await updateStage(runId, "hash_document", "running");
+    await updateStage(runId, "hash_document", "completed", { documentHash });
+
+    await updateStage(runId, "extract_text", "running");
+    const doc = await extractDocument(documentBuffer, contentType);
+
+    if (doc.pageCount > config.pageCountLimit) {
+      await failRun(runId, "Document exceeds page limit");
+      return;
+    }
+
+    await updateStage(runId, "extract_text", "completed", {
+      pageCount: doc.pageCount,
+      paragraphCount: doc.paragraphs.length,
+      citationCount: doc.citations.length,
+      quotedSpanCount: doc.quotedSpans.length,
+    });
+
+    await updateStage(runId, "extract_citations", "running");
+    await updateStage(runId, "extract_citations", "completed", {
+      citations: doc.citations.length,
+      quotedSpans: doc.quotedSpans.length,
+    });
+
+    await updateStage(runId, "run_checks", "running");
+
+    const resolver = createResolver();
+    const checks = getAllChecks();
+    const allFindings: CheckResult[] = [];
+
+    for (const citation of doc.citations) {
+      for (const check of checks) {
+        try {
+          const result = await check.execute(citation, doc, resolver);
+          allFindings.push(result);
+        } catch {
+          allFindings.push({
+            checkType: check.name,
+            result: FINDING_RESULT.ERROR,
+            citationText: citation.text,
+            isAiAssisted: false,
+            detail: "Check execution failed",
+          });
+        }
+      }
+    }
+
+    await updateStage(runId, "run_checks", "completed", {
+      totalFindings: allFindings.length,
+    });
+
+    await updateStage(runId, "compute_score", "running");
+    const score = computeScore(allFindings);
+    await updateStage(runId, "compute_score", "completed", { ...score });
+
+    await updateStage(runId, "persist_results", "running");
+
+    await prisma.$transaction(
+      allFindings.map((finding) =>
+        prisma.finding.create({
+          data: {
+            runId,
+            checkType: finding.checkType,
+            result: finding.result,
+            citationText: finding.citationText,
+            sourceQueried: finding.sourceQueried,
+            snippetUsed: finding.snippetUsed,
+            ruleId: finding.ruleId,
+            isAiAssisted: finding.isAiAssisted,
+            aiModelName: finding.aiModelName,
+            aiModelVersion: finding.aiModelVersion,
+          },
+        })
+      )
+    );
+
+    await prisma.report.create({
+      data: {
+        runId,
+        reportType: "full",
+        status: "ready",
+        riskBand: score.riskBand,
+        coveragePct: score.coveragePct,
+        citationCount: score.citationCount,
+        quoteIssues: score.quoteIssues,
+        unresolvedItems: score.unresolvedItems,
+        documentHash,
+        generatedAt: new Date(),
+      },
+    });
+
+    await updateStage(runId, "persist_results", "completed");
+
+    await prisma.verificationRun.update({
+      where: { id: runId },
+      data: {
+        status: RUN_STATUS.COMPLETED,
+        completedAt: new Date(),
+      },
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Unknown pipeline error";
+    try {
+      await failRun(runId, message);
+    } catch {}
+    throw err;
+  } finally {
+    if (workspace) {
+      try {
+        await rm(workspace, { recursive: true, force: true });
+      } catch {}
+    }
+  }
+}

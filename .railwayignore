@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+.clerk/
+.next/
+node_modules/
+test-results/
+playwright-report/
+playwright/.clerk/
+
+uploads/
+outputs/
+
+*.tsbuildinfo
+.DS_Store
+Fern_Project_Proposals.xlsx
