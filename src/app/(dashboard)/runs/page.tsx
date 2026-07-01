@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 import {
   Table,
   TableBody,
@@ -23,25 +23,16 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default async function RunsPage() {
-  const { userId, orgId: clerkOrgId } = await getAuthContext();
-  if (!userId) redirect("/sign-in");
+  const workspace = await resolveWorkspace();
+  if (!workspace) redirect("/sign-in");
 
-  const runs = clerkOrgId
-    ? await prisma.verificationRun.findMany({
-        where: {
-          document: { organization: { clerkOrgId } },
-        },
-        include: { document: true },
-        orderBy: { createdAt: "desc" },
-      })
-    : await prisma.verificationRun.findMany({
-        where: {
-          createdBy: userId,
-          document: { organization: { clerkOrgId: { equals: null } } },
-        },
-        include: { document: true },
-        orderBy: { createdAt: "desc" },
-      });
+  const { orgId } = workspace;
+
+  const runs = await prisma.verificationRun.findMany({
+    where: { orgId },
+    include: { document: true },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-6">

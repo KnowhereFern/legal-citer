@@ -1,28 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ reportId: string }> }
 ) {
-  const { orgId: clerkOrgId } = await getAuthContext();
+  const workspace = await resolveWorkspace();
 
-  if (!clerkOrgId) {
+  if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { clerkOrgId },
-  });
-
-  if (!org) {
-    return NextResponse.json(
-      { error: "Organization not found" },
-      { status: 404 }
-    );
-  }
-
+  const { orgId } = workspace;
   const { reportId } = await params;
 
   const report = await prisma.report.findUnique({
@@ -38,7 +28,7 @@ export async function GET(
     },
   });
 
-  if (!report || report.run.orgId !== org.id) {
+  if (!report || report.run.orgId !== orgId) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 

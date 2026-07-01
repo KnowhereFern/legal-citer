@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 import {
   Table,
   TableBody,
@@ -22,29 +22,18 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export default async function ReportsPage() {
-  const { userId, orgId: clerkOrgId } = await getAuthContext();
-  if (!userId) redirect("/sign-in");
+  const workspace = await resolveWorkspace();
+  if (!workspace) redirect("/sign-in");
 
-  const reports = clerkOrgId
-    ? await prisma.report.findMany({
-        where: {
-          run: {
-            document: { organization: { clerkOrgId } },
-          },
-        },
-        include: { run: { include: { document: true } } },
-        orderBy: { createdAt: "desc" },
-      })
-    : await prisma.report.findMany({
-        where: {
-          run: {
-            createdBy: userId,
-            document: { organization: { clerkOrgId: { equals: null } } },
-          },
-        },
-        include: { run: { include: { document: true } } },
-        orderBy: { createdAt: "desc" },
-      });
+  const { orgId } = workspace;
+
+  const reports = await prisma.report.findMany({
+    where: {
+      run: { orgId },
+    },
+    include: { run: { include: { document: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-6">

@@ -4,25 +4,16 @@ import { uploadSchema } from "@/lib/constants";
 import { computeFileHash, isValidFileType, isValidFileSize } from "@/lib/files";
 import { saveFile } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
-import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 
 export async function POST(request: NextRequest) {
-  const { orgId: clerkOrgId, userId } = await getAuthContext();
+  const workspace = await resolveWorkspace();
 
-  if (!clerkOrgId || !userId) {
+  if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { clerkOrgId },
-  });
-
-  if (!org) {
-    return NextResponse.json(
-      { error: "Organization not found" },
-      { status: 404 }
-    );
-  }
+  const { orgId, userId } = workspace;
 
   const formData = await request.formData();
   const file = formData.get("file");
@@ -67,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   const document = await prisma.document.create({
     data: {
-      orgId: org.id,
+      orgId,
       createdBy: userId,
       filename: file.name,
       contentType: file.type,
@@ -79,7 +70,7 @@ export async function POST(request: NextRequest) {
   });
 
   await logAuditEvent({
-    orgId: org.id,
+    orgId,
     eventType: "document.uploaded",
     actorId: userId,
     subjectType: "document",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { startRunSchema, RUN_STATUS } from "@/lib/constants";
-import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 import { DEFAULT_PIPELINE_CONFIG } from "@/lib/types";
 import { enqueueVerificationJob } from "@/worker/queue";
 
@@ -16,22 +16,13 @@ const PIPELINE_STAGES = [
 ];
 
 export async function POST(request: NextRequest) {
-  const { orgId: clerkOrgId, userId } = await getAuthContext();
+  const workspace = await resolveWorkspace();
 
-  if (!clerkOrgId || !userId) {
+  if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { clerkOrgId },
-  });
-
-  if (!org) {
-    return NextResponse.json(
-      { error: "Organization not found" },
-      { status: 404 }
-    );
-  }
+  const { orgId, userId } = workspace;
 
   const body = await request.json();
   const parsed = startRunSchema.safeParse(body);
@@ -49,7 +40,7 @@ export async function POST(request: NextRequest) {
     where: { id: documentId },
   });
 
-  if (!document || document.orgId !== org.id) {
+  if (!document || document.orgId !== orgId) {
     return NextResponse.json(
       { error: "Document not found" },
       { status: 404 }
@@ -58,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   const run = await prisma.verificationRun.create({
     data: {
-      orgId: org.id,
+      orgId,
       createdBy: userId,
       documentId,
       status: RUN_STATUS.QUEUED,
@@ -88,25 +79,16 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const { orgId: clerkOrgId } = await getAuthContext();
+  const workspace = await resolveWorkspace();
 
-  if (!clerkOrgId) {
+  if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { clerkOrgId },
-  });
-
-  if (!org) {
-    return NextResponse.json(
-      { error: "Organization not found" },
-      { status: 404 }
-    );
-  }
+  const { orgId } = workspace;
 
   const runs = await prisma.verificationRun.findMany({
-    where: { orgId: org.id },
+    where: { orgId },
     orderBy: { createdAt: "desc" },
     include: {
       document: { select: { id: true, filename: true } },
