@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Activity, UploadCloud } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   queued: "bg-yellow-500/15 text-yellow-700 border-yellow-500/25",
@@ -44,62 +46,74 @@ export default async function RunsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Verification Runs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Verification Runs</h1>
         <p className="text-sm text-muted-foreground mt-1">
           View all citation verification runs.
         </p>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Document</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Started</TableHead>
-            <TableHead>Completed</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {runs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                No verification runs yet.
-              </TableCell>
-            </TableRow>
-          ) : (
-            runs.map((run: { id: string; status: string; startedAt: Date | null; completedAt: Date | null; document: { filename: string } }) => (
-              <TableRow key={run.id}>
-                <TableCell>
-                  <Link
-                    href={`/runs/${run.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {run.document.filename}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={STATUS_COLORS[run.status] ?? ""}
-                  >
-                    {run.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {run.startedAt
-                    ? run.startedAt.toLocaleString()
-                    : "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {run.completedAt
-                    ? run.completedAt.toLocaleString()
-                    : "—"}
-                </TableCell>
+      {runs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-accent">
+            <Activity className="size-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium">No verification runs yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload a document to start your first citation verification.
+          </p>
+          <Link href="/upload">
+            <Button className="mt-5 gap-2">
+              <UploadCloud className="size-4" />
+              Upload Document
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Document</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Started</TableHead>
+                <TableHead>Completed</TableHead>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {runs.map((run: { id: string; status: string; startedAt: Date | null; completedAt: Date | null; document: { filename: string } }) => (
+                <TableRow key={run.id}>
+                  <TableCell>
+                    <Link
+                      href={`/runs/${run.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {run.document.filename}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={STATUS_COLORS[run.status] ?? ""}
+                    >
+                      {run.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {run.startedAt
+                      ? run.startedAt.toLocaleString()
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {run.completedAt
+                      ? run.completedAt.toLocaleString()
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

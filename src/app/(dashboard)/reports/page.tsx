@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FileCheck2, UploadCloud } from "lucide-react";
 
 const RISK_COLORS: Record<string, string> = {
   low: "bg-green-500/15 text-green-700 border-green-500/25",
@@ -47,68 +49,80 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Reports</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Verification reports for your documents.
         </p>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Document Hash</TableHead>
-            <TableHead>Risk Band</TableHead>
-            <TableHead>Coverage</TableHead>
-            <TableHead>Citation Count</TableHead>
-            <TableHead>Generated</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {reports.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No reports yet.
-              </TableCell>
-            </TableRow>
-          ) : (
-            reports.map((report: { id: string; documentHash: string | null; riskBand: string | null; coveragePct: number | null; citationCount: number | null; generatedAt: Date | null }) => (
-              <TableRow key={report.id}>
-                <TableCell>
-                  <Link
-                    href={`/reports/${report.id}`}
-                    className="font-mono text-xs font-medium hover:underline"
-                  >
-                    {report.documentHash ?? "—"}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  {report.riskBand ? (
-                    <Badge
-                      variant="outline"
-                      className={RISK_COLORS[report.riskBand] ?? ""}
-                    >
-                      {report.riskBand}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {report.coveragePct != null
-                    ? `${report.coveragePct.toFixed(1)}%`
-                    : "—"}
-                </TableCell>
-                <TableCell>{report.citationCount ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {report.generatedAt
-                    ? report.generatedAt.toLocaleString()
-                    : "—"}
-                </TableCell>
+      {reports.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-20 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-accent">
+            <FileCheck2 className="size-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium">No reports yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Run a verification to generate your first report.
+          </p>
+          <Link href="/upload">
+            <Button className="mt-5 gap-2">
+              <UploadCloud className="size-4" />
+              Upload Document
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Document Hash</TableHead>
+                <TableHead>Risk Band</TableHead>
+                <TableHead>Coverage</TableHead>
+                <TableHead>Citation Count</TableHead>
+                <TableHead>Generated</TableHead>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {reports.map((report: { id: string; documentHash: string | null; riskBand: string | null; coveragePct: number | null; citationCount: number | null; generatedAt: Date | null }) => (
+                <TableRow key={report.id}>
+                  <TableCell>
+                    <Link
+                      href={`/reports/${report.id}`}
+                      className="font-mono text-xs font-medium hover:underline"
+                    >
+                      {report.documentHash ?? "—"}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {report.riskBand ? (
+                      <Badge
+                        variant="outline"
+                        className={RISK_COLORS[report.riskBand] ?? ""}
+                      >
+                        {report.riskBand}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {report.coveragePct != null
+                      ? `${report.coveragePct.toFixed(1)}%`
+                      : "—"}
+                  </TableCell>
+                  <TableCell>{report.citationCount ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {report.generatedAt
+                      ? report.generatedAt.toLocaleString()
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

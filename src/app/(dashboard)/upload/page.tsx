@@ -25,6 +25,7 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { SUPPORTED_EXTENSIONS, MAX_FILE_SIZE_BYTES } from "@/lib/constants";
+import { UploadCloud, FileText } from "lucide-react";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -152,7 +153,7 @@ export default function UploadPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Upload &amp; Verify</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Upload &amp; Verify</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Upload a legal document to verify its citations.
         </p>
@@ -174,10 +175,12 @@ export default function UploadPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div
-            className={`flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+            className={`flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
               dragOver
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                ? "border-primary bg-primary/5 scale-[1.01]"
+                : file
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/40 hover:bg-accent/50"
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -185,17 +188,28 @@ export default function UploadPage() {
             onClick={() => fileInputRef.current?.click()}
           >
             {file ? (
-              <div className="text-center">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10">
+                  <FileText className="size-6 text-primary" />
+                </div>
                 <p className="font-medium">{file.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
             ) : (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Drag and drop your file here, or click to browse
-                </p>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
+                  <UploadCloud className="size-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">
+                    Drop your document here, or click to browse
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {SUPPORTED_EXTENSIONS.join(", ")} up to 50MB
+                  </p>
+                </div>
               </div>
             )}
             <Input
