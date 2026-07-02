@@ -1,9 +1,8 @@
 import { NextRequest } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { prisma } from "@/lib/db";
 import { resolveWorkspace } from "@/lib/workspace";
 import { generateFilingBlock } from "@/lib/filing-block";
-import { ReportPdf, type ReportPdfData } from "@/app/(dashboard)/reports/[reportId]/report-pdf";
+import type { ReportPdfData } from "@/app/(dashboard)/reports/[reportId]/report-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +104,8 @@ export async function GET(
     totalFindings: findings.length,
   };
 
+  const { renderToBuffer } = await import("@react-pdf/renderer");
+  const { ReportPdf } = await import("@/app/(dashboard)/reports/[reportId]/report-pdf");
   const pdfBuffer = await renderToBuffer(<ReportPdf data={data} />);
 
   const safeFilename = run.document.filename.replace(/[^a-z0-9]/gi, "_");
