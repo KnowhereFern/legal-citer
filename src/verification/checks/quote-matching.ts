@@ -28,6 +28,8 @@ export const quoteMatchingCheck: VerificationCheck = {
         citationText: citation.text,
         isAiAssisted: false,
         detail: "No quoted spans found near this citation",
+        paragraphIndex: citation.paragraphIndex,
+        pageNumber: citation.page,
       };
     }
 
@@ -44,6 +46,8 @@ export const quoteMatchingCheck: VerificationCheck = {
           resolverResult.status === "unresolved"
             ? "Cannot verify quotes: citation unresolved"
             : resolverResult.error ?? "Source failure during quote matching",
+        paragraphIndex: citation.paragraphIndex,
+        pageNumber: citation.page,
       };
     }
 
@@ -66,6 +70,8 @@ export const quoteMatchingCheck: VerificationCheck = {
         snippetUsed: relevantQuotes[0].text.slice(0, 200),
         isAiAssisted: false,
         detail: failures.join("; "),
+        paragraphIndex: citation.paragraphIndex,
+        pageNumber: citation.page,
       };
     }
 
@@ -77,6 +83,8 @@ export const quoteMatchingCheck: VerificationCheck = {
       snippetUsed: relevantQuotes[0].text.slice(0, 200),
       isAiAssisted: false,
       detail: `${relevantQuotes.length} quote(s) matched against authority`,
+      paragraphIndex: citation.paragraphIndex,
+      pageNumber: citation.page,
     };
   },
 };

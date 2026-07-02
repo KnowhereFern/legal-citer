@@ -7,5 +7,14 @@
   "deploy": {
     "restartPolicyType": "ALWAYS",
     "restartPolicyMaxRetries": 3
+  },
+  "services": {
+    "worker-prod": {
+      "deploy": {
+        "startCommand": "npm run worker",
+        "restartPolicyType": "ALWAYS",
+        "restartPolicyMaxRetries": 3
+      }
+    }
   }
 }

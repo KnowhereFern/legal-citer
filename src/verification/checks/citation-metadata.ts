@@ -19,6 +19,14 @@ export const citationMetadataCheck: VerificationCheck = {
     }
   ) {
     const resolverResult = await resolver.resolve(citation);
+    const meta = (resolverResult.metadata ?? {}) as Record<string, unknown>;
+    const canonical = {
+      canonicalCitation: typeof meta.citation === "string" ? meta.citation : undefined,
+      canonicalCaseName: typeof meta.caseName === "string" ? meta.caseName : undefined,
+      canonicalCourt: typeof meta.court === "string" ? meta.court : undefined,
+      paragraphIndex: citation.paragraphIndex,
+      pageNumber: citation.page,
+    };
 
     if (resolverResult.status !== "resolved" || !resolverResult.metadata) {
       return {
@@ -31,11 +39,11 @@ export const citationMetadataCheck: VerificationCheck = {
           resolverResult.status === "unresolved"
             ? "Cannot validate metadata: citation unresolved"
             : resolverResult.error ?? "Source failure during metadata lookup",
+        ...canonical,
       };
     }
 
     const issues: string[] = [];
-    const meta = resolverResult.metadata as Record<string, unknown>;
 
     const yearMatch = citation.text.match(YEAR_PATTERN);
     if (yearMatch && meta.year && yearMatch[1] !== String(meta.year)) {
@@ -62,6 +70,7 @@ export const citationMetadataCheck: VerificationCheck = {
         sourceQueried: resolverResult.sourceId,
         isAiAssisted: false,
         detail: issues.join("; "),
+        ...canonical,
       };
     }
 
@@ -72,6 +81,7 @@ export const citationMetadataCheck: VerificationCheck = {
       sourceQueried: resolverResult.sourceId,
       isAiAssisted: false,
       detail: "Citation metadata consistent with authority",
+      ...canonical,
     };
   },
 };

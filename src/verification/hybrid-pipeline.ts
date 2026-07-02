@@ -200,6 +200,12 @@ export async function runHybridVerification(params: {
         citationCount: score.citationCount,
         quoteIssues: score.quoteIssues,
         unresolvedItems: score.unresolvedItems,
+        authoritiesVerified: score.authoritiesVerified,
+        authoritiesUnresolved: score.authoritiesUnresolved,
+        quotationsChecked: score.quotationsChecked,
+        quotationsMatched: score.quotationsMatched,
+        recordCitationsChecked: score.recordCitationsChecked,
+        recordCitationsUnresolved: score.recordCitationsUnresolved,
       },
     });
   }

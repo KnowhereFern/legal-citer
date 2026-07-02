@@ -1,7 +1,13 @@
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/auth-context";
+import { resolveWorkspace } from "@/lib/workspace";
 import { generateFilingBlock } from "@/lib/filing-block";
+import {
+  buildPublicExhibitData,
+  buildReportData,
+  type BuildReportDataParams,
+} from "@/lib/report-data";
 import {
   Card,
   CardContent,
@@ -19,8 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Progress, ProgressTrack, ProgressIndicator } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import {
   Alert,
   AlertDescription,
@@ -29,9 +33,12 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { riskBadgeClass, resultBadgeClass } from "@/lib/status-colors";
 import { Download, FileWarning } from "lucide-react";
+import { FILING_TYPES } from "@/lib/constants";
 import { ReportControls } from "./report-controls";
 import { CopyBlockButton } from "./copy-block-button";
+import { FilingDetailsForm } from "./filing-details-form";
 import { Suspense } from "react";
+import { BRAND, publicVerificationUrl } from "@/lib/brand";
 
 export default async function ReportDetailPage({
   params,
@@ -40,12 +47,14 @@ export default async function ReportDetailPage({
   params: Promise<{ reportId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { userId } = await getAuthContext();
-  if (!userId) redirect("/sign-in");
+  const auth = await getAuthContext();
+  if (!auth.userId) redirect("/sign-in");
+
+  const workspace = await resolveWorkspace();
+  if (!workspace) redirect("/sign-in");
 
   const { reportId } = await params;
   const sp = await searchParams;
-  const jurisdictionKey = (sp.jurisdiction as string) ?? "florida_rule_2515";
   const view = (sp.view as string) ?? "public";
   const aiTools = (sp.aiTools as string) ?? "";
   const docTitle = (sp.docTitle as string) ?? "";
@@ -57,32 +66,29 @@ export default async function ReportDetailPage({
         include: {
           document: true,
           findings: true,
-          pipelineStages: { orderBy: { createdAt: "asc" } },
         },
       },
     },
   });
 
-  if (!report) notFound();
+  if (!report || report.run.orgId !== workspace.orgId) notFound();
 
   const run = report.run;
-  const findings = run.findings;
-  const pipelineStages = run.pipelineStages;
+  const isPublicView = view !== "full";
 
-  const passedCount = findings.filter((f: { result: string }) => f.result === "pass").length;
-  const failedCount = findings.filter((f: { result: string }) => f.result === "fail").length;
-  const unresolvedCount = findings.filter((f: { result: string }) => f.result === "unresolved").length;
-  const exceptionFindings = findings.filter(
-    (f: { result: string }) => f.result === "unresolved" || f.result === "fail"
-  );
+  // Fall back to the jurisdiction (and filing type) captured at upload time
+  // when the user hasn't picked one via the report-page controls.
+  const jurisdictionKey =
+    (sp.jurisdiction as string) ?? run.document.jurisdiction ?? "florida_rule_2515";
 
   const documentHash = report.documentHash ?? run.document.documentHash;
   const timestamp = (report.generatedAt ?? run.createdAt).toISOString();
+  const generatedAt = new Date(timestamp).toLocaleString();
 
   const filingBlock = generateFilingBlock({
     jurisdictionKey,
-    documentTitle: docTitle,
-    aiToolsUsed: aiTools,
+    documentTitle: report.filingTitle ?? docTitle,
+    aiToolsUsed: report.aiToolsDisclosed ?? aiTools,
     runId: run.id,
     documentHash,
     riskBand: report.riskBand ?? "unknown",
@@ -90,14 +96,186 @@ export default async function ReportDetailPage({
     timestamp,
   });
 
-  const pdfHref = `/api/reports/${reportId}/pdf?jurisdiction=${encodeURIComponent(jurisdictionKey)}&view=${view}${aiTools ? `&aiTools=${encodeURIComponent(aiTools)}` : ""}${docTitle ? `&docTitle=${encodeURIComponent(docTitle)}` : ""}`;
+  const base: Omit<BuildReportDataParams, "filingBlock"> = {
+    reportId,
+    filename: run.document.filename,
+    generatedAt,
+    documentHash,
+    runId: run.id,
+    riskBand: report.riskBand,
+    coveragePct: report.coveragePct,
+    verificationId: null,
+    caseNumber: report.caseNumber,
+    filingTitle: report.filingTitle,
+    aiToolsDisclosed: report.aiToolsDisclosed,
+    attorneyName: report.attorneyName,
+    barNumber: report.barNumber,
+    lawFirm: report.lawFirm,
+    party: report.party,
+    verificationVendor: report.verificationVendor,
+    filingTitleOverride: docTitle,
+    aiToolsOverride: aiTools,
+    authoritiesExtracted: report.citationCount,
+    authoritiesVerified: report.authoritiesVerified,
+    authoritiesUnresolved: report.authoritiesUnresolved,
+    quotationsChecked: report.quotationsChecked,
+    quotationsMatched: report.quotationsMatched,
+    recordCitationsChecked: report.recordCitationsChecked,
+    recordCitationsUnresolved: report.recordCitationsUnresolved,
+    findings: run.findings.map((f) => ({
+      id: f.id,
+      checkType: f.checkType,
+      result: f.result,
+      citationText: f.citationText,
+      sourceQueried: f.sourceQueried,
+      snippetUsed: f.snippetUsed,
+      reviewerState: f.reviewerState,
+      detail: f.detail,
+      canonicalCitation: f.canonicalCitation,
+      canonicalCaseName: f.canonicalCaseName,
+      canonicalCourt: f.canonicalCourt,
+      paragraphIndex: f.paragraphIndex,
+      pageNumber: f.pageNumber,
+      createdAt: f.createdAt,
+    })),
+  };
 
-  const isPublicView = view !== "full";
+  const pdfHref = `/api/reports/${reportId}/pdf?jurisdiction=${encodeURIComponent(jurisdictionKey)}&view=${view}`;
+
+  // ---------------------------------------------------------------------
+  // PUBLIC VIEW — thin, brand-forward exhibit preview (matches the filed PDF).
+  // No case caption, attorney signature, detailed counts, or exceptions on
+  // this preview; the filed exhibit keeps those off the public docket.
+  // ---------------------------------------------------------------------
+  if (isPublicView) {
+    const pubData = buildPublicExhibitData({ ...base, filingBlock });
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+        <PageHeader
+          title="Public Exhibit Preview"
+          description="This is what gets attached to the filing — bare and brand-forward."
+        >
+          <Button variant="outline" render={<a href={pdfHref} />}>
+            <Download data-icon="inline-start" />
+            Download PDF
+          </Button>
+        </PageHeader>
+
+        <Suspense fallback={null}>
+          <ReportControls defaultJurisdiction={run.document.jurisdiction ?? undefined} />
+        </Suspense>
+
+        {/* Brand header */}
+        <Card>
+          <CardContent className="flex items-center justify-between border-b border-border py-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">
+                {BRAND.company.charAt(0)}
+              </div>
+              <div>
+                <p className="font-bold leading-tight">{BRAND.company}</p>
+                <p className="text-xs text-muted-foreground">{BRAND.domain}</p>
+              </div>
+            </div>
+          </CardContent>
+          <CardContent className="flex flex-col items-center gap-1 py-6 text-center">
+            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
+              EXHIBIT A
+            </p>
+            <h2 className="text-xl font-bold">AI Use &amp; Verification Summary</h2>
+            <p className="text-xs text-muted-foreground">
+              Prepared by {BRAND.company} | {BRAND.domain}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Identity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+              <DetailRow label="Verification ID" value={pubData.verificationId ?? pubData.reportId} mono />
+              <DetailRow label="Document Hash (SHA-256)" value={pubData.documentHash} mono />
+              <DetailRow label="Reviewed Version Timestamp" value={pubData.generatedAt} />
+              <DetailRow label="Generative drafting tools disclosed" value={pubData.aiToolsDisclosed} />
+              <DetailRow label="Verification vendor / system" value={pubData.verificationVendor} />
+            </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Verification scope</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-2">
+              {pubData.verificationScope.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className="font-bold">•</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.status === "not_enabled" && (
+                    <span className="text-xs italic text-muted-foreground">[if run — not run]</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border border-border bg-muted/50 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Final workflow status
+              </p>
+              <p className="mt-1 text-lg font-bold">{pubData.finalStatus}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Limitations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+              {pubData.limitations.map((lim, i) => (
+                <li key={i}>{lim}</li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm italic text-muted-foreground">{pubData.supportsNote}</p>
+          </CardContent>
+        </Card>
+
+        {pubData.verificationId && (
+          <p className="text-center text-xs text-muted-foreground">
+            Public verification:{" "}
+            <a
+              href={publicVerificationUrl(pubData.verificationId)}
+              className="underline-offset-2 hover:underline"
+            >
+              {BRAND.domain}/v/{pubData.verificationId}
+            </a>
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // FULL VIEW — rich private report (identification, counts, exceptions,
+  // attorney acknowledgment, Appendix A). Internal use only.
+  // ---------------------------------------------------------------------
+  const data = buildReportData({ ...base, filingBlock });
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={isPublicView ? "AI Use & Verification Summary" : "Pre-Filing Verification Report"}
+        title="Pre-Filing Verification Report"
         description={run.document.filename}
       >
         {report.riskBand && (
@@ -125,64 +303,109 @@ export default async function ReportDetailPage({
       )}
 
       <Suspense fallback={null}>
-        <ReportControls />
+        <ReportControls defaultJurisdiction={run.document.jurisdiction ?? undefined} />
       </Suspense>
 
-      <Separator />
+      <FilingDetailsForm
+        reportId={reportId}
+        initial={{
+          caseNumber: report.caseNumber ?? "",
+          filingTitle: report.filingTitle ?? docTitle,
+          aiToolsDisclosed: report.aiToolsDisclosed ?? aiTools,
+          attorneyName: report.attorneyName ?? "",
+          barNumber: report.barNumber ?? "",
+          lawFirm: report.lawFirm ?? "",
+          party: report.party ?? "",
+          verificationVendor: report.verificationVendor ?? "",
+        }}
+      />
 
+      {/* Identification block */}
       <Card>
         <CardHeader>
-          <CardTitle>Summary</CardTitle>
+          <CardTitle>Identification</CardTitle>
+          <CardDescription>EXHIBIT A — AI Use and Verification Summary</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Risk Band</p>
-              {report.riskBand ? (
-                <Badge variant="outline" className={riskBadgeClass(report.riskBand)}>
-                  {report.riskBand}
-                </Badge>
-              ) : (
-                <span className="text-sm">—</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-xs text-muted-foreground">Coverage</p>
-              <p className="text-sm font-medium tabular-nums">{(report.coveragePct ?? 0).toFixed(1)}%</p>
-              <Progress value={report.coveragePct ?? 0}>
-                <ProgressTrack>
-                  <ProgressIndicator />
-                </ProgressTrack>
-              </Progress>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Authorities Extracted</p>
-              <p className="text-2xl font-semibold tabular-nums">{report.citationCount ?? 0}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Authorities Verified</p>
-              <p className="text-2xl font-semibold tabular-nums text-success">{passedCount}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Unresolved</p>
-              <p className="text-2xl font-semibold tabular-nums text-warning">{unresolvedCount}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Quote Issues</p>
-              <p className="text-2xl font-semibold tabular-nums text-destructive">{report.quoteIssues ?? 0}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Run Timestamp</p>
-              <p className="text-sm">{new Date(timestamp).toLocaleString()}</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Document Hash</p>
-              <p className="break-all font-mono text-xs">{documentHash}</p>
-            </div>
-          </div>
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+            <DetailRow label="Case No." value={data.identification.caseNumber} />
+            <DetailRow label="Filing Title" value={data.identification.filingTitle} />
+            <DetailRow label="Filing Type" value={filingTypeLabel(run.document.filingType)} />
+            <DetailRow label="Reviewed Version Date/Time" value={data.identification.reviewedVersionAt} />
+            <DetailRow label="Verification Run ID" value={data.identification.runId} mono />
+            <DetailRow label="Document Hash (SHA-256)" value={data.identification.documentHash} mono />
+            <DetailRow label="AI Tool(s) Disclosed" value={data.identification.aiToolsDisclosed} />
+            <DetailRow label="Verification Vendor / System" value={data.identification.verificationVendor} />
+          </dl>
         </CardContent>
       </Card>
 
+      {/* Purpose */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Purpose</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-relaxed text-muted-foreground">{data.purpose}</p>
+        </CardContent>
+      </Card>
+
+      {/* Verification Scope */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Verification Scope</CardTitle>
+          <CardDescription>
+            The following checks were run on the identified version of the filing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ol className="flex flex-col gap-2">
+            {data.verificationScope.map((item, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm">
+                <span className="font-semibold tabular-nums">{i + 1}.</span>
+                <span className="flex-1">{item.label}</span>
+                {item.status === "not_enabled" && (
+                  <span className="text-xs italic text-muted-foreground">[if enabled — not enabled]</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
+
+      {/* Summary of Results */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Summary of Results</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+            <CountRow label="Authorities extracted" value={data.summary.authoritiesExtracted} />
+            <CountRow label="Authorities verified" value={data.summary.authoritiesVerified} tone="success" />
+            <CountRow label="Authorities unresolved at first pass" value={data.summary.authoritiesUnresolved} tone="warning" />
+            <CountRow label="Quotations checked" value={data.summary.quotationsChecked} />
+            <CountRow label="Quotations matched" value={data.summary.quotationsMatched} tone="success" />
+            <CountRow
+              label="Record citations checked"
+              value={data.summary.recordCitationsChecked === null ? "N/A — not enabled" : data.summary.recordCitationsChecked}
+            />
+            <CountRow
+              label="Record citations unresolved"
+              value={data.summary.recordCitationsUnresolved === null ? "N/A — not enabled" : data.summary.recordCitationsUnresolved}
+              tone={data.summary.recordCitationsUnresolved ? "warning" : undefined}
+            />
+            <CountRow label="Exceptions remaining at final review" value={data.summary.exceptionsRemaining} tone={data.summary.exceptionsRemaining ? "destructive" : undefined} />
+          </div>
+          <Alert className="mt-4">
+            <AlertTitle>Final workflow status</AlertTitle>
+            <AlertDescription className="font-semibold">
+              {data.summary.finalStatus}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Filing Block */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
@@ -210,69 +433,79 @@ export default async function ReportDetailPage({
               {filingBlock.certificationText}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {filingBlock.placementNote}
-          </p>
+          <p className="text-xs text-muted-foreground">{filingBlock.placementNote}</p>
         </CardContent>
       </Card>
 
-      {exceptionFindings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Exceptions Remaining</CardTitle>
-            <CardDescription>
-              Items that did not pass verification. Review before filing.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      {/* Attorney Acknowledgment */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Attorney Acknowledgment</CardTitle>
+          <CardDescription>For counsel review. This section does not constitute legal advice.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            The undersigned reviewed this summary and the underlying verification results for the
+            identified filing version. Any unresolved items remaining at the time of filing are
+            expressly identified below or in the filing itself.
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+            <div>
+              <p>Dated: {data.signature.datedLabel}</p>
+            </div>
+            <div>
+              <p>____________________________________</p>
+              <p>{data.signature.attorneyName}</p>
+              <p>{data.signature.barNumber}</p>
+              <p>{data.signature.lawFirm}</p>
+              <p>Counsel for {data.signature.party}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Exceptions Remaining at Filing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Exceptions Remaining at Filing ({data.exceptions.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.exceptions.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">None.</p>
+          ) : (
             <div className="flex flex-col gap-3">
-              {exceptionFindings.map((finding: {
-                id: string;
-                checkType: string;
-                result: string;
-                citationText: string | null;
-              }, idx: number) => (
-                <div key={finding.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
+              {data.exceptions.map((exc, idx) => (
+                <div key={idx} className="flex items-start gap-3 rounded-lg border border-border p-3">
                   <span className="mt-0.5 font-mono text-xs text-muted-foreground">{idx + 1}.</span>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={resultBadgeClass(finding.result)}>
-                        {finding.result}
+                      <Badge variant="outline" className={resultBadgeClass(exc.result)}>
+                        {exc.result}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{finding.checkType}</span>
+                      <span className="text-xs text-muted-foreground">{exc.checkType}</span>
                     </div>
-                    {finding.citationText && (
-                      <p className="font-mono text-sm">{finding.citationText}</p>
+                    {exc.citationText && (
+                      <p className="font-mono text-sm">{exc.citationText}</p>
+                    )}
+                    {exc.detail && (
+                      <p className="text-xs text-muted-foreground">{exc.detail}</p>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Verification Record</CardTitle>
-          <CardDescription>
-            Audit artifact linking this report to the verified document version.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-4 font-mono text-xs">
-            {filingBlock.verificationSummary}
-          </pre>
+          )}
         </CardContent>
       </Card>
 
+      {/* Limitations */}
       <Card>
         <CardHeader>
           <CardTitle>Limitations</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {filingBlock.limitations.map((lim, i) => (
+            {data.limitations.map((lim, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="mt-1 text-xs">•</span>
                 <span>{lim}</span>
@@ -281,170 +514,97 @@ export default async function ReportDetailPage({
             <li className="flex items-start gap-2">
               <span className="mt-1 text-xs">•</span>
               <span>
-                This verification confirms only that the listed checks were run on the identified document version. It does not certify legal merit, strategic soundness, completeness of the record, or likelihood of success.
+                This exhibit confirms only that the listed verification steps were run on the
+                identified document version. It does not certify legal merit, strategic soundness,
+                completeness of the record, or likelihood of success.
               </span>
             </li>
           </ul>
         </CardContent>
       </Card>
 
-      {!isPublicView && (
-        <>
-          <Separator />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Pipeline Stages</CardTitle>
-              <CardDescription>
-                Execution log of the verification pipeline.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+      {/* Appendix A — full view only */}
+      {data.appendix && data.appendix.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Appendix A — Itemized Findings ({data.appendix.length})</CardTitle>
+            <CardDescription>
+              Per-finding detail. Not filed with the court unless required in a dispute.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Detail</TableHead>
+                    <TableHead>¶ / Page</TableHead>
+                    <TableHead>Citation as written</TableHead>
+                    <TableHead>Canonical authority resolved</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Quote</TableHead>
+                    <TableHead>Metadata</TableHead>
+                    <TableHead>Reviewer</TableHead>
+                    <TableHead>Timestamp</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pipelineStages.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
-                        No pipeline stages recorded.
-                      </TableCell>
+                  {data.appendix.map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-mono text-xs">{row.paragraph ?? "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.citationAsWritten ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{row.canonicalAuthority ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{row.sourceUsed ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{row.quoteMatch ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{row.metadataMatch ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{row.reviewerDisposition}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.timestamp}</TableCell>
                     </TableRow>
-                  ) : (
-                    pipelineStages.map((stage: { id: string; stageName: string; status: string; failureDetail: string | null }) => (
-                      <TableRow key={stage.id}>
-                        <TableCell className="font-medium">{stage.stageName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{stage.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {stage.failureDetail ?? "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Itemized Findings</CardTitle>
-              <CardDescription>
-                Per-citation check results. {passedCount + failedCount} of {findings.length} checks completed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {findings.length === 0 ? (
-                <p className="py-6 text-center text-muted-foreground">
-                  No findings recorded.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {findings.map((finding: {
-                    id: string;
-                    checkType: string;
-                    result: string;
-                    citationText: string | null;
-                    sourceQueried: string | null;
-                    snippetUsed: string | null;
-                    ruleId: string | null;
-                    isAiAssisted: boolean;
-                    aiModelName: string | null;
-                    aiModelVersion: string | null;
-                  }) => (
-                    <div
-                      key={finding.id}
-                      className="flex flex-col gap-2 rounded-lg border border-border p-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{finding.checkType}</span>
-                        <Badge variant="outline" className={resultBadgeClass(finding.result)}>
-                          {finding.result}
-                        </Badge>
-                        {finding.ruleId && (
-                          <span className="text-xs text-muted-foreground">
-                            Rule: {finding.ruleId}
-                          </span>
-                        )}
-                      </div>
-                      {finding.citationText && (
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-muted-foreground">Citation</p>
-                          <p className="rounded bg-muted px-2 py-1 font-mono text-sm">
-                            {finding.citationText}
-                          </p>
-                        </div>
-                      )}
-                      {finding.sourceQueried && (
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-muted-foreground">Source Queried</p>
-                          <p className="text-sm">{finding.sourceQueried}</p>
-                        </div>
-                      )}
-                      {finding.snippetUsed && (
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-muted-foreground">Snippet</p>
-                          <p className="rounded bg-muted px-2 py-1 font-mono text-sm">
-                            {finding.snippetUsed}
-                          </p>
-                        </div>
-                      )}
-                      {finding.isAiAssisted && (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            AI-Assisted
-                          </Badge>
-                          {finding.aiModelName && (
-                            <span className="text-xs text-muted-foreground">
-                              {finding.aiModelName}
-                              {finding.aiModelVersion && ` v${finding.aiModelVersion}`}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </>
+            </div>
+          </CardContent>
+        </Card>
       )}
+    </div>
+  );
+}
 
-      <Separator />
+function filingTypeLabel(value?: string | null): string {
+  if (!value) return "—";
+  return FILING_TYPES.find((f) => f.value === value)?.label ?? value;
+}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Attorney Acknowledgment</CardTitle>
-          <CardDescription>
-            For counsel review. This section does not constitute legal advice.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            The undersigned reviewed this {isPublicView ? "summary" : "report"} and the underlying
-            verification results for the identified filing version. Any unresolved items remaining
-            at the time of filing are expressly identified in the Exceptions Remaining section above.
-            The undersigned accepts full responsibility for the contents of the filing.
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-            <div>
-              <p>Dated: ____________________</p>
-            </div>
-            <div>
-              <p>____________________________________</p>
-              <p>Attorney Name / Florida Bar No.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={`text-sm break-all ${mono ? "font-mono text-xs" : ""}`}>{value}</dd>
+    </div>
+  );
+}
+
+function CountRow({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  tone?: "success" | "warning" | "destructive";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+        ? "text-warning"
+        : tone === "destructive"
+          ? "text-destructive"
+          : "";
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-lg font-semibold tabular-nums ${toneClass}`}>{value}</span>
     </div>
   );
 }

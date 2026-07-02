@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveWorkspace } from "@/lib/workspace";
 import { generateFilingBlock } from "@/lib/filing-block";
-import type { ReportPdfData } from "@/app/(dashboard)/reports/[reportId]/report-pdf";
+import {
+  buildPublicExhibitData,
+  buildReportData,
+  type BuildReportDataParams,
+} from "@/lib/report-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +22,6 @@ export async function GET(
 
   const { reportId } = await params;
   const sp = request.nextUrl.searchParams;
-  const jurisdictionKey = sp.get("jurisdiction") ?? "florida_rule_2515";
   const view = sp.get("view") ?? "public";
   const aiTools = sp.get("aiTools") ?? "";
   const docTitle = sp.get("docTitle") ?? "";
@@ -30,7 +33,6 @@ export async function GET(
         include: {
           document: true,
           findings: true,
-          pipelineStages: { orderBy: { createdAt: "asc" } },
         },
       },
     },
@@ -41,17 +43,15 @@ export async function GET(
   }
 
   const run = report.run;
-  const findings = run.findings;
   const isPublicView = view !== "full";
 
-  const passedCount = findings.filter((f) => f.result === "pass").length;
-  const failedCount = findings.filter((f) => f.result === "fail").length;
-  const exceptionFindings = findings.filter(
-    (f) => f.result === "unresolved" || f.result === "fail"
-  );
+  // Fall back to the jurisdiction captured at upload time when no override is present.
+  const jurisdictionKey =
+    sp.get("jurisdiction") ?? run.document.jurisdiction ?? "florida_rule_2515";
 
   const documentHash = report.documentHash ?? run.document.documentHash;
   const timestamp = (report.generatedAt ?? run.createdAt).toISOString();
+  const generatedAt = new Date(timestamp).toLocaleString();
 
   const manifest = await prisma.verificationManifest.findFirst({
     where: { runId: run.id },
@@ -59,8 +59,8 @@ export async function GET(
 
   const filingBlock = generateFilingBlock({
     jurisdictionKey,
-    documentTitle: docTitle,
-    aiToolsUsed: aiTools,
+    documentTitle: report.filingTitle ?? docTitle,
+    aiToolsUsed: report.aiToolsDisclosed ?? aiTools,
     runId: run.id,
     documentHash,
     riskBand: report.riskBand ?? "unknown",
@@ -68,50 +68,62 @@ export async function GET(
     timestamp,
   });
 
-  const data: ReportPdfData = {
+  // Shared source data for both the public exhibit and the full report.
+  const base: Omit<BuildReportDataParams, "filingBlock"> = {
     reportId,
-    verificationId: manifest?.id ?? null,
     filename: run.document.filename,
+    generatedAt,
+    documentHash,
+    runId: run.id,
     riskBand: report.riskBand,
     coveragePct: report.coveragePct,
-    citationCount: report.citationCount,
-    quoteIssues: report.quoteIssues,
-    unresolvedItems: report.unresolvedItems,
-    documentHash,
-    generatedAt: timestamp,
-    runId: run.id,
-    filingBlock,
-    isPublicView,
-    exceptions: exceptionFindings.map((f) => ({
+    verificationId: manifest?.id ?? null,
+    caseNumber: report.caseNumber,
+    filingTitle: report.filingTitle,
+    aiToolsDisclosed: report.aiToolsDisclosed,
+    attorneyName: report.attorneyName,
+    barNumber: report.barNumber,
+    lawFirm: report.lawFirm,
+    party: report.party,
+    verificationVendor: report.verificationVendor,
+    filingTitleOverride: docTitle,
+    aiToolsOverride: aiTools,
+    authoritiesExtracted: report.citationCount,
+    authoritiesVerified: report.authoritiesVerified,
+    authoritiesUnresolved: report.authoritiesUnresolved,
+    quotationsChecked: report.quotationsChecked,
+    quotationsMatched: report.quotationsMatched,
+    recordCitationsChecked: report.recordCitationsChecked,
+    recordCitationsUnresolved: report.recordCitationsUnresolved,
+    findings: run.findings.map((f) => ({
+      id: f.id,
       checkType: f.checkType,
       result: f.result,
       citationText: f.citationText,
+      sourceQueried: f.sourceQueried,
+      snippetUsed: f.snippetUsed,
+      reviewerState: f.reviewerState,
+      detail: f.detail,
+      canonicalCitation: f.canonicalCitation,
+      canonicalCaseName: f.canonicalCaseName,
+      canonicalCourt: f.canonicalCourt,
+      paragraphIndex: f.paragraphIndex,
+      pageNumber: f.pageNumber,
+      createdAt: f.createdAt,
     })),
-    findings: isPublicView
-      ? undefined
-      : findings.map((f) => ({
-          checkType: f.checkType,
-          result: f.result,
-          citationText: f.citationText,
-          sourceQueried: f.sourceQueried,
-          isAiAssisted: f.isAiAssisted,
-          aiModelName: f.aiModelName,
-        })),
-    pipelineStages: isPublicView
-      ? undefined
-      : run.pipelineStages.map((s) => ({
-          stageName: s.stageName,
-          status: s.status,
-          failureDetail: s.failureDetail,
-        })),
-    passedCount,
-    failedCount,
-    totalFindings: findings.length,
   };
 
   const { renderToBuffer } = await import("@react-pdf/renderer");
-  const { ReportPdf } = await import("@/app/(dashboard)/reports/[reportId]/report-pdf");
-  const pdfBuffer = await renderToBuffer(<ReportPdf data={data} />);
+  const pdfModule = await import("@/app/(dashboard)/reports/[reportId]/report-pdf");
+
+  let pdfBuffer;
+  if (isPublicView) {
+    const publicData = buildPublicExhibitData({ ...base, filingBlock });
+    pdfBuffer = await renderToBuffer(<pdfModule.PublicExhibitPdf data={publicData} />);
+  } else {
+    const data = buildReportData({ ...base, filingBlock });
+    pdfBuffer = await renderToBuffer(<pdfModule.FullReportPdf data={data} />);
+  }
 
   const safeFilename = run.document.filename.replace(/[^a-z0-9]/gi, "_");
   const viewLabel = isPublicView ? "summary" : "full";

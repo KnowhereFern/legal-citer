@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     config: {
       ...DEFAULT_PIPELINE_CONFIG,
       enableSupportAnalysis: parsed.data.enableSupportAnalysis,
+      enableRecordCitations: parsed.data.enableRecordCitations,
     },
   });
 

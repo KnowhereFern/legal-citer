@@ -44,8 +44,13 @@ model Document {
   fileSizeBytes Int
   documentHash  String
   storageKey    String
-  retentionMode String   @default("standard")
+  retentionMode String   @default("delete_raw")
   retentionPolicyId String?
+  // Filing context captured at upload time, flows into the report.
+  jurisdiction  String?
+  filingType    String?
+  aiAssisted    String?
+  aiTool        String?
   uploadedAt    DateTime @default(now())
 
   organization    Organization     @relation(fields: [orgId], references: [id])
@@ -88,21 +93,28 @@ model PipelineStage {
 }
 
 model Finding {
-  id             String   @id @default(cuid())
-  runId          String
-  citationText   String?
-  checkType      String
-  result         String
-  sourceQueried  String?
-  snippetUsed    String?
-  ruleId         String?
-  isAiAssisted   Boolean  @default(false)
-  aiModelName    String?
-  aiModelVersion String?
-  reviewerState  String   @default("unreviewed")
-  severity       String?
-  metadata       Json?
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  runId             String
+  citationText      String?
+  checkType         String
+  result            String
+  sourceQueried     String?
+  snippetUsed       String?
+  ruleId            String?
+  isAiAssisted      Boolean  @default(false)
+  aiModelName       String?
+  aiModelVersion    String?
+  reviewerState     String   @default("unreviewed")
+  severity          String?
+  metadata          Json?
+  // Appendix-A detail columns
+  detail            String?
+  canonicalCitation String?
+  canonicalCaseName String?
+  canonicalCourt    String?
+  paragraphIndex    Int?
+  pageNumber        Int?
+  createdAt         DateTime @default(now())
 
   run        VerificationRun @relation(fields: [runId], references: [id])
 }
@@ -123,6 +135,24 @@ model Report {
   generatedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  // Filing identification (persisted, edited from report page)
+  caseNumber          String?
+  filingTitle         String?
+  aiToolsDisclosed    String?
+  attorneyName        String?
+  barNumber           String?
+  lawFirm             String?
+  party               String?
+  verificationVendor  String?
+
+  // Summary-of-results counts
+  authoritiesVerified     Int?
+  authoritiesUnresolved   Int?
+  quotationsChecked       Int?
+  quotationsMatched       Int?
+  recordCitationsChecked  Int?
+  recordCitationsUnresolved Int?
 
   run VerificationRun @relation(fields: [runId], references: [id])
 }

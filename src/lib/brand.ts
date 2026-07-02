@@ -4,9 +4,9 @@ export const BRAND = {
   artifact: "Pre-Filing Verification Record",
   artifactSummary: "AI Use & Citation Verification Summary",
   tagline: "Receipts for every cite.",
-  headline: "File with receipts.",
+  headline: "Check your filing before you file",
   subheadline:
-    "Upload a filing. Verify citations, quotes, and AI-use disclosure support. Generate a court-ready verification record.",
+    "Upload a legal filing. BaddieLegal checks citations, quotes, and AI-use disclosure issues, then creates a clean verification record you can review, save, or attach.",
   domain: "baddielegal.com",
   baseUrl: "https://baddielegal.com",
   verificationPathPrefix: "/v",
