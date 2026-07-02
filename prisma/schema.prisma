@@ -14,6 +14,21 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Workspace defaults (applied at upload time).
+  defaultJurisdiction String?
+  defaultFilingType   String?
+
+  // Public verification page gating.
+  publicVerificationEnabled Boolean @default(false)
+
+  // Billing placeholder (Free until Stripe/Clerk Billing is wired).
+  plan String @default("free")
+
+  // Notification preferences (state only; delivery is a future task).
+  notifyReportReady Boolean @default(true)
+  notifyAttachPdf   Boolean @default(true)
+  notifyShareLink   Boolean @default(true)
+
   documents     Document[]
   auditEvents   AuditEvent[]
   retentionPolicies RetentionPolicy[]
@@ -26,6 +41,7 @@ model RetentionPolicy {
   rawFileHours   Int      @default(24)
   extractedTextHours Int  @default(48)
   tempArtifactHours  Int @default(4)
+  reportHours    Int?     // null = keep reports indefinitely
   isDefault      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

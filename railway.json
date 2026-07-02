@@ -5,6 +5,7 @@
     "buildCommand": "npm run build"
   },
   "deploy": {
+    "preDeployCommand": "npm run db:deploy",
     "restartPolicyType": "ALWAYS",
     "restartPolicyMaxRetries": 3
   },
@@ -12,6 +13,7 @@
     "worker-prod": {
       "deploy": {
         "startCommand": "npm run worker",
+        "preDeployCommand": "npm run db:deploy",
         "restartPolicyType": "ALWAYS",
         "restartPolicyMaxRetries": 3
       }

@@ -128,3 +128,46 @@ export const startRunSchema = z.object({
   enableSupportAnalysis: z.boolean().default(false),
   enableRecordCitations: z.boolean().default(false),
 });
+
+// ── Settings ──────────────────────────────────────────────────────────────
+
+export const PLAN_VALUES = ["free", "pro", "business"] as const;
+export type Plan = (typeof PLAN_VALUES)[number];
+
+export const PLAN_LABELS: Record<Plan, string> = {
+  free: "Free",
+  pro: "Pro",
+  business: "Business",
+};
+
+export const PLAN_DISPLAY: { value: Plan; label: string }[] = [
+  { value: "free", label: "Free" },
+  { value: "pro", label: "Pro" },
+  { value: "business", label: "Business" },
+];
+
+export const workspaceSettingsSchema = z.object({
+  name: z.string().trim().min(1, "Workspace name is required").max(120),
+  defaultJurisdiction: z.string().trim().max(64).nullish(),
+  defaultFilingType: z.enum(FILING_TYPE_VALUES).nullish(),
+});
+
+export const retentionSettingsSchema = z.object({
+  rawFileHours: z.number().int().min(1).max(24 * 365),
+  extractedTextHours: z.number().int().min(1).max(24 * 365),
+  reportHours: z.number().int().min(1).max(24 * 365 * 10).nullish(),
+  publicVerificationEnabled: z.boolean(),
+});
+
+export const notificationSettingsSchema = z.object({
+  notifyReportReady: z.boolean(),
+  notifyAttachPdf: z.boolean(),
+  notifyShareLink: z.boolean(),
+});
+
+export const dataExportFormatSchema = z.enum(["csv", "json"]);
+
+// Requires the caller to type the workspace name to confirm.
+export const deleteWorkspaceSchema = z.object({
+  confirm: z.string().trim().min(1),
+});
