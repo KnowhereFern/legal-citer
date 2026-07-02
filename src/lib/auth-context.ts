@@ -18,7 +18,7 @@ export function isE2EAuthBypassEnabled() {
 
 export async function getAuthContext(): Promise<AppAuthContext> {
   if (isE2EAuthBypassEnabled()) {
-    return { userId: E2E_USER_ID, orgId: E2E_ORG_ID };
+    return { userId: E2E_USER_ID, orgId: null };
   }
 
   const { auth } = await import("@clerk/nextjs/server");
