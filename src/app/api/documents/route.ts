@@ -8,7 +8,6 @@ import { resolveWorkspace } from "@/lib/workspace";
 
 export async function POST(request: NextRequest) {
   const workspace = await resolveWorkspace();
-  console.log("[upload] workspace:", workspace);
 
   if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

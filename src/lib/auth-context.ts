@@ -13,14 +13,11 @@ export type AppCurrentUser = {
 };
 
 export function isE2EAuthBypassEnabled() {
-  const bypass = process.env.E2E_AUTH_BYPASS === "1";
-  console.log("[auth] E2E_AUTH_BYPASS env:", process.env.E2E_AUTH_BYPASS, "bypass:", bypass);
-  return bypass;
+  return process.env.E2E_AUTH_BYPASS === "1";
 }
 
 export async function getAuthContext(): Promise<AppAuthContext> {
   if (isE2EAuthBypassEnabled()) {
-    console.log("[auth] E2E bypass active, returning E2E user");
     return { userId: E2E_USER_ID, orgId: null };
   }
 
