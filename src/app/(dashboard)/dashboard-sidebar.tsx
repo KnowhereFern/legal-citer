@@ -18,7 +18,13 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function DashboardSidebar({ orgActive }: { orgActive: boolean }) {
+export function DashboardSidebar({
+  orgActive,
+  showUserButton = true,
+}: {
+  orgActive: boolean;
+  showUserButton?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
@@ -67,13 +73,17 @@ export function DashboardSidebar({ orgActive }: { orgActive: boolean }) {
 
       <div className="border-t border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "size-8",
-              },
-            }}
-          />
+          {showUserButton ? (
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "size-8",
+                },
+              }}
+            />
+          ) : (
+            <div className="size-8 rounded-full bg-sidebar-accent" />
+          )}
           <span className="text-xs text-sidebar-foreground/50">
             Account
           </span>

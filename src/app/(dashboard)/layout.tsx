@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAuthContext } from "@/lib/auth-context";
+import { getAuthContext, isE2EAuthBypassEnabled } from "@/lib/auth-context";
 import { DashboardSidebar } from "./dashboard-sidebar";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      <DashboardSidebar orgActive={!!orgId} />
+      <DashboardSidebar
+        orgActive={!!orgId}
+        showUserButton={!isE2EAuthBypassEnabled()}
+      />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">{children}</main>
     </div>
   );
