@@ -15,7 +15,7 @@ interface CitationLookupResult {
   }>;
 }
 
-interface CitationLookupResponse extends Array<CitationLookupResult> {}
+type CitationLookupResponse = CitationLookupResult[];
 
 interface OpinionResponse {
   plain_text: string;
