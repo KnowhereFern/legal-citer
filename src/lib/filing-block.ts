@@ -1,45 +1,62 @@
-export interface FilingBlock {
-  verificationId: string;
+import { getJurisdiction } from "@/lib/jurisdictions";
+
+export interface FilingBlockParams {
+  jurisdictionKey: string;
+  documentTitle?: string;
+  aiToolsUsed?: string;
+  runId: string;
   documentHash: string;
   riskBand: string;
   coveragePct: number;
   timestamp: string;
-  json: string;
-  plainText: string;
 }
 
-export function generateFilingBlock(params: {
-  documentHash: string;
-  runId: string;
-  riskBand: string;
-  coveragePct: number;
-  timestamp: string;
-}): FilingBlock {
-  const data = {
-    verificationId: params.runId,
-    documentHash: params.documentHash,
-    riskBand: params.riskBand,
-    coveragePct: params.coveragePct,
-    timestamp: params.timestamp,
-  };
+export interface FilingBlockResult {
+  jurisdictionLabel: string;
+  certificationText: string;
+  placementNote: string;
+  limitations: string[];
+  source: string;
+  superseded: boolean;
+  verificationSummary: string;
+}
 
-  const json = JSON.stringify(data, null, 2);
+export function generateFilingBlock(
+  params: FilingBlockParams
+): FilingBlockResult {
+  const config = getJurisdiction(params.jurisdictionKey);
 
-  const plainText = [
-    `VERIFICATION ID: ${data.verificationId}`,
-    `DOCUMENT HASH: ${data.documentHash}`,
-    `RISK BAND: ${data.riskBand}`,
-    `COVERAGE: ${data.coveragePct.toFixed(1)}%`,
-    `TIMESTAMP: ${data.timestamp}`,
+  let text = config.filingBlockText;
+
+  if (text.includes("{DOCUMENT_TITLE}")) {
+    text = text.replaceAll(
+      "{DOCUMENT_TITLE}",
+      params.documentTitle?.trim() || "[TITLE OF FILING]"
+    );
+  }
+
+  if (text.includes("{AI_TOOLS}")) {
+    text = text.replaceAll(
+      "{AI_TOOLS}",
+      params.aiToolsUsed?.trim() || "[TOOL NAME(S)]"
+    );
+  }
+
+  const verificationSummary = [
+    `Verification Run ID: ${params.runId}`,
+    `Document Hash (SHA-256): ${params.documentHash}`,
+    `Risk Band: ${params.riskBand}`,
+    `Coverage: ${params.coveragePct.toFixed(1)}%`,
+    `Verified at: ${params.timestamp}`,
   ].join("\n");
 
   return {
-    verificationId: params.runId,
-    documentHash: params.documentHash,
-    riskBand: params.riskBand,
-    coveragePct: params.coveragePct,
-    timestamp: params.timestamp,
-    json,
-    plainText,
+    jurisdictionLabel: config.label,
+    certificationText: text,
+    placementNote: config.placementNote,
+    limitations: config.limitations,
+    source: config.source,
+    superseded: config.superseded ?? false,
+    verificationSummary,
   };
 }

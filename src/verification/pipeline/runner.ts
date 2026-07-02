@@ -11,6 +11,7 @@ import { extractDocument } from "../extractor";
 import { getAllChecks } from "../checks";
 import { createResolver } from "../resolvers";
 import { computeScore } from "../scoring";
+import { createManifest, signManifest } from "@/lib/manifest";
 
 async function updateStage(
   runId: string,
@@ -184,6 +185,12 @@ export async function runVerification(params: {
     });
 
     await updateStage(runId, "persist_results", "completed");
+
+    await createManifest(runId, documentHash);
+    const manifestRecord = await prisma.verificationManifest.findUniqueOrThrow({
+      where: { runId },
+    });
+    await signManifest(manifestRecord.id);
 
     await prisma.verificationRun.update({
       where: { id: runId },
