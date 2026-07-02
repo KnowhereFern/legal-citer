@@ -74,6 +74,9 @@ async function processJob(job: Job) {
 export function createWorker(): Worker {
   const worker = new Worker(QUEUE_NAME, processJob, {
     connection: getRedisConnection(),
+    stalledInterval: 300000,
+    maxStalledCount: 3,
+    lockDuration: 600000,
   });
 
   worker.on("failed", (job, err) => {
