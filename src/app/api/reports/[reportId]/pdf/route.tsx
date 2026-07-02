@@ -53,6 +53,10 @@ export async function GET(
   const documentHash = report.documentHash ?? run.document.documentHash;
   const timestamp = (report.generatedAt ?? run.createdAt).toISOString();
 
+  const manifest = await prisma.verificationManifest.findFirst({
+    where: { runId: run.id },
+  });
+
   const filingBlock = generateFilingBlock({
     jurisdictionKey,
     documentTitle: docTitle,
@@ -66,6 +70,7 @@ export async function GET(
 
   const data: ReportPdfData = {
     reportId,
+    verificationId: manifest?.id ?? null,
     filename: run.document.filename,
     riskBand: report.riskBand,
     coveragePct: report.coveragePct,
@@ -110,7 +115,7 @@ export async function GET(
 
   const safeFilename = run.document.filename.replace(/[^a-z0-9]/gi, "_");
   const viewLabel = isPublicView ? "summary" : "full";
-  const downloadName = `LegalCiter_${safeFilename}_${viewLabel}.pdf`;
+  const downloadName = `BaddieLegalVerify_${safeFilename}_${viewLabel}.pdf`;
 
   return new Response(new Uint8Array(pdfBuffer), {
     headers: {

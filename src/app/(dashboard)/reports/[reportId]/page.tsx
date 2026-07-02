@@ -10,6 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -25,25 +26,12 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { PageHeader } from "@/components/page-header";
+import { riskBadgeClass, resultBadgeClass } from "@/lib/status-colors";
 import { Download, FileWarning } from "lucide-react";
 import { ReportControls } from "./report-controls";
 import { CopyBlockButton } from "./copy-block-button";
 import { Suspense } from "react";
-
-const RISK_COLORS: Record<string, string> = {
-  low: "bg-green-500/15 text-green-700 border-green-500/25",
-  medium: "bg-yellow-500/15 text-yellow-700 border-yellow-500/25",
-  high: "bg-orange-500/15 text-orange-700 border-orange-500/25",
-  critical: "bg-red-500/15 text-red-700 border-red-500/25",
-};
-
-const RESULT_COLORS: Record<string, string> = {
-  pass: "bg-green-500/15 text-green-700 border-green-500/25",
-  fail: "bg-red-500/15 text-red-700 border-red-500/25",
-  unresolved: "bg-yellow-500/15 text-yellow-700 border-yellow-500/25",
-  not_applicable: "bg-gray-500/15 text-gray-600 border-gray-500/25",
-  error: "bg-red-500/15 text-red-700 border-red-500/25",
-};
 
 export default async function ReportDetailPage({
   params,
@@ -107,33 +95,21 @@ export default async function ReportDetailPage({
   const isPublicView = view !== "full";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">
-              {isPublicView
-                ? "AI Use & Verification Summary"
-                : "Pre-Filing Verification Report"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {run.document.filename}
-            </p>
-          </div>
-          {report.riskBand && (
-            <Badge variant="outline" className={RISK_COLORS[report.riskBand] ?? ""}>
-              {report.riskBand}
-            </Badge>
-          )}
-        </div>
-        <a
-          href={pdfHref}
-          className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
-        >
-          <Download className="h-4 w-4" />
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={isPublicView ? "AI Use & Verification Summary" : "Pre-Filing Verification Report"}
+        description={run.document.filename}
+      >
+        {report.riskBand && (
+          <Badge variant="outline" className={riskBadgeClass(report.riskBand)}>
+            {report.riskBand}
+          </Badge>
+        )}
+        <Button variant="outline" render={<a href={pdfHref} />}>
+          <Download data-icon="inline-start" />
           Download PDF
-        </a>
-      </div>
+        </Button>
+      </PageHeader>
 
       {(report.status === "pending" || report.status === "error") && (
         <Alert variant={report.status === "error" ? "destructive" : "default"}>
@@ -159,51 +135,49 @@ export default async function ReportDetailPage({
           <CardTitle>Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Risk Band</p>
-              <div>
-                {report.riskBand ? (
-                  <Badge variant="outline" className={RISK_COLORS[report.riskBand] ?? ""}>
-                    {report.riskBand}
-                  </Badge>
-                ) : (
-                  <span className="text-sm">—</span>
-                )}
-              </div>
+              {report.riskBand ? (
+                <Badge variant="outline" className={riskBadgeClass(report.riskBand)}>
+                  {report.riskBand}
+                </Badge>
+              ) : (
+                <span className="text-sm">—</span>
+              )}
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1.5">
               <p className="text-xs text-muted-foreground">Coverage</p>
-              <p className="text-sm font-medium">{(report.coveragePct ?? 0).toFixed(1)}%</p>
+              <p className="text-sm font-medium tabular-nums">{(report.coveragePct ?? 0).toFixed(1)}%</p>
               <Progress value={report.coveragePct ?? 0}>
                 <ProgressTrack>
                   <ProgressIndicator />
                 </ProgressTrack>
               </Progress>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Authorities Extracted</p>
-              <p className="text-2xl font-semibold">{report.citationCount ?? 0}</p>
+              <p className="text-2xl font-semibold tabular-nums">{report.citationCount ?? 0}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Authorities Verified</p>
-              <p className="text-2xl font-semibold text-green-600">{passedCount}</p>
+              <p className="text-2xl font-semibold tabular-nums text-success">{passedCount}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Unresolved</p>
-              <p className="text-2xl font-semibold text-yellow-600">{unresolvedCount}</p>
+              <p className="text-2xl font-semibold tabular-nums text-warning">{unresolvedCount}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Quote Issues</p>
-              <p className="text-2xl font-semibold text-red-600">{report.quoteIssues ?? 0}</p>
+              <p className="text-2xl font-semibold tabular-nums text-destructive">{report.quoteIssues ?? 0}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Run Timestamp</p>
               <p className="text-sm">{new Date(timestamp).toLocaleString()}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Document Hash</p>
-              <p className="font-mono text-xs break-all">{documentHash}</p>
+              <p className="break-all font-mono text-xs">{documentHash}</p>
             </div>
           </div>
         </CardContent>
@@ -211,7 +185,7 @@ export default async function ReportDetailPage({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <CardTitle>Filing Block</CardTitle>
               <CardDescription>
@@ -221,17 +195,18 @@ export default async function ReportDetailPage({
             <CopyBlockButton text={filingBlock.certificationText} />
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="flex flex-col gap-3">
           {filingBlock.superseded && (
-            <div className="flex items-start gap-2 rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3">
-              <FileWarning className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-yellow-700">
+            <Alert>
+              <FileWarning className="size-4 text-warning" />
+              <AlertTitle>Superseded Order</AlertTitle>
+              <AlertDescription>
                 This order was superseded by the statewide Rule 2.515(d)(2) on June 15, 2026. It is included as an optional enhanced disclosure template.
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
-          <div className="rounded-md border bg-muted/50 p-4">
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="rounded-lg border border-border bg-muted/50 p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
               {filingBlock.certificationText}
             </p>
           </div>
@@ -250,27 +225,24 @@ export default async function ReportDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               {exceptionFindings.map((finding: {
                 id: string;
                 checkType: string;
                 result: string;
                 citationText: string | null;
               }, idx: number) => (
-                <div key={finding.id} className="flex items-start gap-3 rounded-md border p-3">
-                  <span className="text-xs font-mono text-muted-foreground mt-0.5">{idx + 1}.</span>
-                  <div className="space-y-1">
+                <div key={finding.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
+                  <span className="mt-0.5 font-mono text-xs text-muted-foreground">{idx + 1}.</span>
+                  <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={RESULT_COLORS[finding.result] ?? ""}
-                      >
+                      <Badge variant="outline" className={resultBadgeClass(finding.result)}>
                         {finding.result}
                       </Badge>
                       <span className="text-xs text-muted-foreground">{finding.checkType}</span>
                     </div>
                     {finding.citationText && (
-                      <p className="text-sm font-mono">{finding.citationText}</p>
+                      <p className="font-mono text-sm">{finding.citationText}</p>
                     )}
                   </div>
                 </div>
@@ -288,7 +260,7 @@ export default async function ReportDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="text-xs font-mono whitespace-pre-wrap bg-muted/50 rounded-md p-4">
+          <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-4 font-mono text-xs">
             {filingBlock.verificationSummary}
           </pre>
         </CardContent>
@@ -299,15 +271,15 @@ export default async function ReportDetailPage({
           <CardTitle>Limitations</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+          <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
             {filingBlock.limitations.map((lim, i) => (
               <li key={i} className="flex items-start gap-2">
-                <span className="text-xs mt-1">•</span>
+                <span className="mt-1 text-xs">•</span>
                 <span>{lim}</span>
               </li>
             ))}
             <li className="flex items-start gap-2">
-              <span className="text-xs mt-1">•</span>
+              <span className="mt-1 text-xs">•</span>
               <span>
                 This verification confirms only that the listed checks were run on the identified document version. It does not certify legal merit, strategic soundness, completeness of the record, or likelihood of success.
               </span>
@@ -339,7 +311,7 @@ export default async function ReportDetailPage({
                 <TableBody>
                   {pipelineStages.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                      <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
                         No pipeline stages recorded.
                       </TableCell>
                     </TableRow>
@@ -370,11 +342,11 @@ export default async function ReportDetailPage({
             </CardHeader>
             <CardContent>
               {findings.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
+                <p className="py-6 text-center text-muted-foreground">
                   No findings recorded.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                   {findings.map((finding: {
                     id: string;
                     checkType: string;
@@ -389,14 +361,11 @@ export default async function ReportDetailPage({
                   }) => (
                     <div
                       key={finding.id}
-                      className="rounded-lg border p-4 space-y-2"
+                      className="flex flex-col gap-2 rounded-lg border border-border p-4"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{finding.checkType}</span>
-                        <Badge
-                          variant="outline"
-                          className={RESULT_COLORS[finding.result] ?? ""}
-                        >
+                        <span className="text-sm font-medium">{finding.checkType}</span>
+                        <Badge variant="outline" className={resultBadgeClass(finding.result)}>
                           {finding.result}
                         </Badge>
                         {finding.ruleId && (
@@ -406,29 +375,29 @@ export default async function ReportDetailPage({
                         )}
                       </div>
                       {finding.citationText && (
-                        <div>
+                        <div className="flex flex-col gap-1">
                           <p className="text-xs text-muted-foreground">Citation</p>
-                          <p className="text-sm font-mono bg-muted rounded px-2 py-1">
+                          <p className="rounded bg-muted px-2 py-1 font-mono text-sm">
                             {finding.citationText}
                           </p>
                         </div>
                       )}
                       {finding.sourceQueried && (
-                        <div>
+                        <div className="flex flex-col gap-1">
                           <p className="text-xs text-muted-foreground">Source Queried</p>
                           <p className="text-sm">{finding.sourceQueried}</p>
                         </div>
                       )}
                       {finding.snippetUsed && (
-                        <div>
+                        <div className="flex flex-col gap-1">
                           <p className="text-xs text-muted-foreground">Snippet</p>
-                          <p className="text-sm bg-muted rounded px-2 py-1 font-mono">
+                          <p className="rounded bg-muted px-2 py-1 font-mono text-sm">
                             {finding.snippetUsed}
                           </p>
                         </div>
                       )}
                       {finding.isAiAssisted && (
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">
                             AI-Assisted
                           </Badge>
@@ -459,13 +428,13 @@ export default async function ReportDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             The undersigned reviewed this {isPublicView ? "summary" : "report"} and the underlying
             verification results for the identified filing version. Any unresolved items remaining
             at the time of filing are expressly identified in the Exceptions Remaining section above.
             The undersigned accepts full responsibility for the contents of the filing.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-muted-foreground">
             <div>
               <p>Dated: ____________________</p>
             </div>

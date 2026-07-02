@@ -24,8 +24,11 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { PageHeader } from "@/components/page-header";
+import { cn } from "@/lib/utils";
 import { SUPPORTED_EXTENSIONS, MAX_FILE_SIZE_BYTES } from "@/lib/constants";
-import { UploadCloud, FileText } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle2 } from "lucide-react";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -151,13 +154,11 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Upload &amp; Verify</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Upload a legal document to verify its citations.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Upload & Verify"
+        description="Upload a legal document to verify its citations."
+      />
 
       {error && (
         <Alert variant="destructive">
@@ -173,15 +174,14 @@ export default function UploadPage() {
             Accepted formats: {SUPPORTED_EXTENSIONS.join(", ")} (max 50MB)
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="flex flex-col gap-6">
           <div
-            className={`flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all ${
-              dragOver
-                ? "border-primary bg-primary/5 scale-[1.01]"
-                : file
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/40 hover:bg-accent/50"
-            }`}
+            className={cn(
+              "flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all",
+              dragOver && "border-primary bg-primary/5 scale-[1.01]",
+              file && !dragOver && "border-primary/40 bg-primary/5",
+              !file && !dragOver && "border-muted-foreground/25 hover:border-primary/40 hover:bg-accent/50"
+            )}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -206,7 +206,7 @@ export default function UploadPage() {
                   <p className="text-sm font-medium">
                     Drop your document here, or click to browse
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {SUPPORTED_EXTENSIONS.join(", ")} up to 50MB
                   </p>
                 </div>
@@ -221,7 +221,7 @@ export default function UploadPage() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label>Retention Mode</Label>
             <Select
               value={retentionMode}
@@ -243,15 +243,40 @@ export default function UploadPage() {
 
           <div className="flex gap-3">
             <Button
+              size="lg"
               onClick={handleUpload}
               disabled={!file || uploading || !!documentId}
             >
-              {uploading ? "Uploading..." : "Upload Document"}
+              {uploading ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  Uploading...
+                </>
+              ) : documentId ? (
+                <>
+                  <CheckCircle2 data-icon="inline-start" />
+                  Uploaded
+                </>
+              ) : (
+                "Upload Document"
+              )}
             </Button>
 
             {documentId && (
-              <Button onClick={handleStartRun} disabled={startingRun}>
-                {startingRun ? "Starting..." : "Start Verification"}
+              <Button
+                size="lg"
+                variant="secondary"
+                onClick={handleStartRun}
+                disabled={startingRun}
+              >
+                {startingRun ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    Starting...
+                  </>
+                ) : (
+                  "Start Verification"
+                )}
               </Button>
             )}
           </div>

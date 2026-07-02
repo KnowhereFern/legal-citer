@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/page-header";
 
 export default async function SettingsPage() {
   const { userId, orgId } = await getAuthContext();
@@ -15,13 +17,11 @@ export default async function SettingsPage() {
   const user = await getCurrentAppUser();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your account and workspace settings.
-        </p>
-      </div>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <PageHeader
+        title="Settings"
+        description="Manage your account and workspace settings."
+      />
 
       <Card>
         <CardHeader>
@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           <CardDescription>Your personal information.</CardDescription>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-3 text-sm">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-[160px_1fr]">
             <dt className="text-muted-foreground">Name</dt>
             <dd className="font-medium">
               {user?.firstName} {user?.lastName}
@@ -42,6 +42,8 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Separator />
+
       <Card>
         <CardHeader>
           <CardTitle>Workspace</CardTitle>
@@ -50,7 +52,7 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-3 text-sm">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-[160px_1fr]">
             <dt className="text-muted-foreground">Type</dt>
             <dd className="font-medium">
               {orgId ? "Organization" : "Personal"}

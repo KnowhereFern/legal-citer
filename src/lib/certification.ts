@@ -35,7 +35,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not guarantee admissibility in any federal court",
       "Users should independently verify all citations before filing",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
   california: {
@@ -50,7 +50,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not constitute a guarantee of compliance with California Rules of Court",
       "Users should independently verify all citations before filing in California courts",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
   new_york: {
@@ -65,7 +65,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not constitute a guarantee of compliance with New York citation standards",
       "Users should independently verify all citations before filing in New York courts",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
   texas: {
@@ -80,7 +80,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not constitute a guarantee of compliance with Texas citation standards",
       "Users should independently verify all citations before filing in Texas courts",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
   florida: {
@@ -95,7 +95,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not constitute a guarantee of compliance with Florida citation standards",
       "Users should independently verify all citations before filing in Florida courts",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
   illinois: {
@@ -110,7 +110,7 @@ const JURISDICTION_CONFIGS: Record<Jurisdiction, JurisdictionConfig> = {
     disclaimers: [
       "This verification does not constitute a guarantee of compliance with Illinois citation standards",
       "Users should independently verify all citations before filing in Illinois courts",
-      "Legal Citer is not a law firm and does not provide legal representation",
+      "BaddieLegal Verify is not a law firm and does not provide legal representation",
     ],
   },
 };

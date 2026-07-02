@@ -4,12 +4,14 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ClerkAppShell } from "@/components/clerk-app-shell";
 import { isE2EAuthBypassEnabled } from "@/lib/auth-context";
+import { BRAND } from "@/lib/brand";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "Legal Citer",
-  description: "Pre-filing document verification for legal citations",
+  title: BRAND.company,
+  description: BRAND.subheadline,
 };
 
 export default function RootLayout({
@@ -24,9 +26,9 @@ export default function RootLayout({
   );
 
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" className={cn("dark font-sans", geist.variable)}>
       <body className="min-h-screen bg-background font-sans antialiased">
-        {content}
+        <TooltipProvider delay={200}>{content}</TooltipProvider>
       </body>
     </html>
   );

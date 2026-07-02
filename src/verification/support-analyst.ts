@@ -98,8 +98,8 @@ export class SupportAnalyst {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.llmApiKey}`,
-          "HTTP-Referer": "https://legalciter.app",
-          "X-Title": "Legal Citer",
+          "HTTP-Referer": "https://baddielegal.com",
+          "X-Title": "BaddieLegal",
         },
         body: JSON.stringify(requestBody),
       });

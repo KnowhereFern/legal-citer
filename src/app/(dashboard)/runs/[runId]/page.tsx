@@ -5,10 +5,12 @@ import { getAuthContext } from "@/lib/auth-context";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -17,20 +19,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { PageHeader } from "@/components/page-header";
+import { statusBadgeClass, stageStatusBadgeClass, resultBadgeClass } from "@/lib/status-colors";
 import { RefreshButton } from "./refresh-button";
-
-const STATUS_COLORS: Record<string, string> = {
-  queued: "bg-yellow-500/15 text-yellow-700 border-yellow-500/25",
-  running: "bg-blue-500/15 text-blue-700 border-blue-500/25",
-  completed: "bg-green-500/15 text-green-700 border-green-500/25",
-  failed: "bg-red-500/15 text-red-700 border-red-500/25",
-  cancelled: "bg-gray-500/15 text-gray-700 border-gray-500/25",
-};
 
 export default async function RunDetailPage({
   params,
@@ -54,28 +51,14 @@ export default async function RunDetailPage({
 
   if (!run) notFound();
 
-  const STAGE_STATUS_COLORS: Record<string, string> = {
-    pending: "bg-gray-500/15 text-gray-600 border-gray-500/25",
-    running: "bg-blue-500/15 text-blue-700 border-blue-500/25",
-    completed: "bg-green-500/15 text-green-700 border-green-500/25",
-    failed: "bg-red-500/15 text-red-700 border-red-500/25",
-    skipped: "bg-gray-500/15 text-gray-500 border-gray-500/25",
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Run Details</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {run.document.filename}
-          </p>
-        </div>
-        <Badge variant="outline" className={STATUS_COLORS[run.status] ?? ""}>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Run Details" description={run.document.filename}>
+        <Badge variant="outline" className={statusBadgeClass(run.status)}>
           {run.status}
         </Badge>
         <RefreshButton status={run.status} />
-      </div>
+      </PageHeader>
 
       {run.failureReason && (
         <Alert variant="destructive">
@@ -89,9 +72,9 @@ export default async function RunDetailPage({
           <CardTitle>Run Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-[200px_1fr]">
             <dt className="text-muted-foreground">Document</dt>
-            <dd>{run.document.filename}</dd>
+            <dd className="font-medium">{run.document.filename}</dd>
             <dt className="text-muted-foreground">Created</dt>
             <dd>{run.createdAt.toLocaleString()}</dd>
             <dt className="text-muted-foreground">Started</dt>
@@ -107,6 +90,9 @@ export default async function RunDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>Pipeline Stages</CardTitle>
+          <CardDescription>
+            Execution log of the verification pipeline.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -122,7 +108,7 @@ export default async function RunDetailPage({
             <TableBody>
               {run.pipelineStages.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
                     No pipeline stages recorded yet.
                   </TableCell>
                 </TableRow>
@@ -131,10 +117,7 @@ export default async function RunDetailPage({
                   <TableRow key={stage.id}>
                     <TableCell className="font-medium">{stage.stageName}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={STAGE_STATUS_COLORS[stage.status] ?? ""}
-                      >
+                      <Badge variant="outline" className={stageStatusBadgeClass(stage.status)}>
                         {stage.status}
                       </Badge>
                     </TableCell>
@@ -144,7 +127,7 @@ export default async function RunDetailPage({
                     <TableCell className="text-muted-foreground">
                       {stage.completedAt?.toLocaleString() ?? "—"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
+                    <TableCell className="text-xs text-muted-foreground">
                       {stage.failureDetail ?? "—"}
                     </TableCell>
                   </TableRow>
@@ -170,13 +153,15 @@ export default async function RunDetailPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {                run.findings.map((finding: { id: string; checkType: string; result: string; citationText: string | null }) => (
+                {run.findings.map((finding: { id: string; checkType: string; result: string; citationText: string | null }) => (
                   <TableRow key={finding.id}>
                     <TableCell className="font-medium">{finding.checkType}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{finding.result}</Badge>
+                      <Badge variant="outline" className={resultBadgeClass(finding.result)}>
+                        {finding.result}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">
+                    <TableCell className="max-w-[300px] truncate text-xs text-muted-foreground">
                       {finding.citationText ?? "—"}
                     </TableCell>
                   </TableRow>
@@ -188,17 +173,16 @@ export default async function RunDetailPage({
       )}
 
       {run.reports.length > 0 && (
-        <div className="flex gap-3">
-          {run.reports.map((report: { id: string }) => (
-            <Link
-              key={report.id}
-              href={`/reports/${report.id}`}
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-            >
-              View Report
-            </Link>
-          ))}
-        </div>
+        <>
+          <Separator />
+          <div className="flex gap-3">
+            {run.reports.map((report: { id: string }) => (
+              <Button key={report.id} render={<Link href={`/reports/${report.id}`} />}>
+                View Report
+              </Button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

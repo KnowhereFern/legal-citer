@@ -4,6 +4,16 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { JURISDICTIONS } from "@/lib/jurisdictions";
 import { getJurisdiction } from "@/lib/jurisdictions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ReportControls() {
   const router = useRouter();
@@ -31,76 +41,65 @@ export function ReportControls() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Jurisdiction
-          </label>
-          <select
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Jurisdiction</Label>
+          <Select
             value={jurisdiction}
-            onChange={(e) => updateParam("jurisdiction", e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            onValueChange={(v) => { if (v) updateParam("jurisdiction", v); }}
           >
-            {JURISDICTIONS.map((j) => (
-              <option key={j.key} value={j.key}>
-                {j.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JURISDICTIONS.map((j) => (
+                <SelectItem key={j.key} value={j.key}>
+                  {j.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {config.requiresToolDisclosure && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              AI Tool(s) Used
-            </label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">AI Tool(s) Used</Label>
+            <Input
               type="text"
               defaultValue={aiTools}
               placeholder="e.g., ChatGPT-4, Claude 3"
               onBlur={(e) => updateParam("aiTools", e.target.value)}
-              className="h-9 w-64 rounded-md border border-input bg-background px-3 text-sm"
+              className="w-64"
             />
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Document Title (optional)
-          </label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Document Title (optional)</Label>
+          <Input
             type="text"
             defaultValue={docTitle}
             placeholder="e.g., Defendant's Motion to Dismiss"
             onBlur={(e) => updateParam("docTitle", e.target.value)}
-            className="h-9 w-64 rounded-md border border-input bg-background px-3 text-sm"
+            className="w-64"
           />
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-lg bg-muted p-1 w-fit">
-        <button
-          onClick={() => updateParam("view", "public")}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-            view === "public"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          AI Use &amp; Verification Summary
-        </button>
-        <button
-          onClick={() => updateParam("view", "full")}
-          className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-            view === "full"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Full Report
-        </button>
-      </div>
+      <Tabs
+        value={view}
+        onValueChange={(v) => { if (v) updateParam("view", v); }}
+      >
+        <TabsList>
+          <TabsTrigger value="public">
+            AI Use &amp; Verification Summary
+          </TabsTrigger>
+          <TabsTrigger value="full">
+            Full Report
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
     </div>
   );
 }
