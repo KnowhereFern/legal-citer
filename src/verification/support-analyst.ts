@@ -46,10 +46,14 @@ function inconclusiveResult(
 export class SupportAnalyst {
   private llmApiKey: string | undefined;
   private llmBaseUrl: string;
+  private model: string;
+  private reasoningEffort: string | undefined;
 
   constructor(llmApiKey?: string, llmBaseUrl?: string) {
     this.llmApiKey = llmApiKey;
     this.llmBaseUrl = llmBaseUrl ?? "https://openrouter.ai/api/v1";
+    this.model = process.env.LLM_MODEL ?? "deepseek/deepseek-r1";
+    this.reasoningEffort = process.env.LLM_REASONING_EFFORT;
   }
 
   async analyzeCitation(params: {
@@ -67,6 +71,27 @@ export class SupportAnalyst {
       return skippedResult(citation.text, "LLM not configured");
     }
 
+    const requestBody: Record<string, unknown> = {
+      model: this.model,
+      temperature: 1,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a legal citation support analyst. Analyze whether the cited proposition is supported by the source text. Return JSON with: propositionSupported (boolean or 'inconclusive'), confidence (0-1), evidenceSpans (array of {text, startOffset, endOffset}), analysis (string explanation). If the source text is insufficient, return inconclusive.",
+        },
+        {
+          role: "user",
+          content: `Citation: ${citation.text}\n\nSource content:\n${sourceContent}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+    };
+
+    if (this.reasoningEffort) {
+      requestBody.reasoning = { effort: this.reasoningEffort };
+    }
+
     try {
       const response = await fetch(`${this.llmBaseUrl}/chat/completions`, {
         method: "POST",
@@ -76,23 +101,7 @@ export class SupportAnalyst {
           "HTTP-Referer": "https://legalciter.app",
           "X-Title": "Legal Citer",
         },
-        body: JSON.stringify({
-          model: "openai/gpt-5.5",
-          reasoning: { effort: "xhigh" },
-          temperature: 1,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a legal citation support analyst. Analyze whether the cited proposition is supported by the source text. Return JSON with: propositionSupported (boolean or 'inconclusive'), confidence (0-1), evidenceSpans (array of {text, startOffset, endOffset}), analysis (string explanation). If the source text is insufficient, return inconclusive.",
-            },
-            {
-              role: "user",
-              content: `Citation: ${citation.text}\n\nSource content:\n${sourceContent}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

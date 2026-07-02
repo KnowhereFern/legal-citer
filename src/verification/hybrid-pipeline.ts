@@ -137,7 +137,7 @@ export async function runHybridVerification(params: {
             : FINDING_RESULT.UNRESOLVED,
       citationText: result.citationText,
       isAiAssisted: true,
-      aiModelName: "gpt-4o-mini",
+      aiModelName: process.env.LLM_MODEL ?? "deepseek/deepseek-r1",
       detail: result.analysis,
     };
 
