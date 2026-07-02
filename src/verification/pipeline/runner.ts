@@ -9,6 +9,7 @@ import type { CheckResult, PipelineConfig } from "@/lib/types";
 
 import { extractDocument } from "../extractor";
 import { getAllChecks } from "../checks";
+import { buildRecordCitationFindings } from "../checks/record-citation";
 import { createResolver } from "../resolvers";
 import { computeScore } from "../scoring";
 import { createManifest, signManifest } from "@/lib/manifest";
@@ -135,10 +136,19 @@ export async function runVerification(params: {
             citationText: citation.text,
             isAiAssisted: false,
             detail: "Check execution failed",
+            paragraphIndex: citation.paragraphIndex,
+            pageNumber: citation.page,
           });
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    // Record-citation check is document-scoped: emit one finding per detected
+    // record citation when the check is enabled. It is intentionally not part
+    // of the per-citation checks map above.
+    if (config.enableRecordCitations) {
+      allFindings.push(...buildRecordCitationFindings(doc.recordCitations ?? []));
     }
 
     await updateStage(runId, "run_checks", "completed", {
@@ -165,6 +175,12 @@ export async function runVerification(params: {
             isAiAssisted: finding.isAiAssisted,
             aiModelName: finding.aiModelName,
             aiModelVersion: finding.aiModelVersion,
+            detail: finding.detail,
+            canonicalCitation: finding.canonicalCitation,
+            canonicalCaseName: finding.canonicalCaseName,
+            canonicalCourt: finding.canonicalCourt,
+            paragraphIndex: finding.paragraphIndex,
+            pageNumber: finding.pageNumber,
           },
         })
       )
@@ -180,6 +196,12 @@ export async function runVerification(params: {
         citationCount: score.citationCount,
         quoteIssues: score.quoteIssues,
         unresolvedItems: score.unresolvedItems,
+        authoritiesVerified: score.authoritiesVerified,
+        authoritiesUnresolved: score.authoritiesUnresolved,
+        quotationsChecked: score.quotationsChecked,
+        quotationsMatched: score.quotationsMatched,
+        recordCitationsChecked: score.recordCitationsChecked,
+        recordCitationsUnresolved: score.recordCitationsUnresolved,
         documentHash,
         generatedAt: new Date(),
       },

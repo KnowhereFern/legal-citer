@@ -15,12 +15,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export function ReportControls() {
+export function ReportControls({
+  defaultJurisdiction,
+}: {
+  /** Jurisdiction captured at upload time; used unless overridden via the URL. */
+  defaultJurisdiction?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const jurisdiction = searchParams.get("jurisdiction") ?? "florida_rule_2515";
+  const jurisdiction =
+    searchParams.get("jurisdiction") ?? defaultJurisdiction ?? "florida_rule_2515";
   const view = searchParams.get("view") ?? "public";
   const aiTools = searchParams.get("aiTools") ?? "";
   const docTitle = searchParams.get("docTitle") ?? "";

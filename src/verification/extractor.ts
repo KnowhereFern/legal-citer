@@ -2,7 +2,7 @@ import mammoth from "mammoth";
 import pdf from "pdf-parse";
 import type { ExtractedDocument } from "@/lib/types";
 
-import { extractCitations, extractQuotedSpans } from "./citations";
+import { extractCitations, extractQuotedSpans, extractRecordCitations, attachParagraphPositions } from "./citations";
 
 function buildParagraphMap(text: string): ExtractedDocument["paragraphs"] {
   const raw = text.split(/\n{2,}/);
@@ -36,13 +36,15 @@ async function extractFromDocx(buffer: Buffer): Promise<ExtractedDocument> {
     const result = await mammoth.extractRawText({ buffer });
     const text = result.value;
     const paragraphs = buildParagraphMap(text);
-    const citations = extractCitations(text);
-    const quotedSpans = extractQuotedSpans(text);
+    const citations = attachParagraphPositions(extractCitations(text), text);
+    const quotedSpans = attachParagraphPositions(extractQuotedSpans(text), text);
+    const recordCitations = attachParagraphPositions(extractRecordCitations(text), text);
     return {
       text,
       paragraphs,
       citations,
       quotedSpans,
+      recordCitations,
       pageCount: 1,
     };
   } catch {
@@ -51,6 +53,7 @@ async function extractFromDocx(buffer: Buffer): Promise<ExtractedDocument> {
       paragraphs: [],
       citations: [],
       quotedSpans: [],
+      recordCitations: [],
       pageCount: 0,
     };
   }
@@ -83,12 +86,18 @@ async function extractFromPdf(buffer: Buffer): Promise<ExtractedDocument> {
 
     const citations = extractCitations(text);
     const quotedSpans = extractQuotedSpans(text);
+    const recordCitations = extractRecordCitations(text);
+
+    const positionedCitations = attachParagraphPositions(citations, text);
+    const positionedQuotes = attachParagraphPositions(quotedSpans, text);
+    const positionedRecordCitations = attachParagraphPositions(recordCitations, text);
 
     return {
       text,
       paragraphs,
-      citations,
-      quotedSpans,
+      citations: positionedCitations,
+      quotedSpans: positionedQuotes,
+      recordCitations: positionedRecordCitations,
       pageCount: numPages,
     };
   } catch {
@@ -97,6 +106,7 @@ async function extractFromPdf(buffer: Buffer): Promise<ExtractedDocument> {
       paragraphs: [],
       citations: [],
       quotedSpans: [],
+      recordCitations: [],
       pageCount: 0,
     };
   }
@@ -122,6 +132,7 @@ export async function extractDocument(
     paragraphs: [],
     citations: [],
     quotedSpans: [],
+    recordCitations: [],
     pageCount: 0,
   };
 }

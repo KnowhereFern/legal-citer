@@ -20,6 +20,8 @@ export const citationExistenceCheck: VerificationCheck = {
       source_failure: FINDING_RESULT.ERROR,
     };
 
+    const meta = (resolverResult.metadata ?? {}) as Record<string, unknown>;
+
     return {
       checkType: "citation_existence",
       result: resultMap[resolverResult.status] ?? FINDING_RESULT.ERROR,
@@ -32,6 +34,11 @@ export const citationExistenceCheck: VerificationCheck = {
           : resolverResult.status === "unresolved"
             ? "Citation could not be resolved"
             : resolverResult.error ?? "Source lookup failed",
+      canonicalCitation: typeof meta.citation === "string" ? meta.citation : undefined,
+      canonicalCaseName: typeof meta.caseName === "string" ? meta.caseName : undefined,
+      canonicalCourt: typeof meta.court === "string" ? meta.court : undefined,
+      paragraphIndex: citation.paragraphIndex,
+      pageNumber: citation.page,
     };
   },
 };

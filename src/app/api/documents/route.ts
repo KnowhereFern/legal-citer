@@ -22,9 +22,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const rawRetentionMode = formData.get("retentionMode") as string | null;
   const parsed = uploadSchema.safeParse({
-    retentionMode: rawRetentionMode ?? undefined,
+    retentionMode: formData.get("retentionMode") ?? undefined,
+    jurisdiction: formData.get("jurisdiction") ?? undefined,
+    filingType: formData.get("filingType") ?? undefined,
+    aiAssisted: formData.get("aiAssisted") ?? undefined,
+    aiTool: formData.get("aiTool") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -66,6 +69,10 @@ export async function POST(request: NextRequest) {
       documentHash,
       storageKey,
       retentionMode: parsed.data.retentionMode,
+      jurisdiction: parsed.data.jurisdiction || null,
+      filingType: parsed.data.filingType || null,
+      aiAssisted: parsed.data.aiAssisted || null,
+      aiTool: parsed.data.aiTool || null,
     },
   });
 
@@ -75,7 +82,15 @@ export async function POST(request: NextRequest) {
     actorId: userId,
     subjectType: "document",
     subjectId: document.id,
-    detail: { filename: file.name, fileSizeBytes: file.size, documentHash },
+    detail: {
+      filename: file.name,
+      fileSizeBytes: file.size,
+      documentHash,
+      jurisdiction: parsed.data.jurisdiction ?? null,
+      filingType: parsed.data.filingType ?? null,
+      aiAssisted: parsed.data.aiAssisted ?? null,
+      aiTool: parsed.data.aiTool ?? null,
+    },
   });
 
   return NextResponse.json(document, { status: 201 });
