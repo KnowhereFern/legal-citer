@@ -10,7 +10,7 @@ import {
   enforceResourceLimits,
 } from "@/lib/isolation";
 import { RUN_STATUS } from "@/lib/constants";
-import { QUEUE_NAME, redisConnection } from "./queue";
+import { QUEUE_NAME, getRedisConnection } from "./queue";
 
 async function processJob(job: Job) {
   const { runId, config } = job.data;
@@ -73,7 +73,7 @@ async function processJob(job: Job) {
 
 export function createWorker(): Worker {
   const worker = new Worker(QUEUE_NAME, processJob, {
-    connection: redisConnection,
+    connection: getRedisConnection(),
   });
 
   worker.on("failed", (job, err) => {

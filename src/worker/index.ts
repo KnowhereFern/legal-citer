@@ -1,4 +1,8 @@
-import { createWorker } from "./processor";
+import * as nextEnv from "@next/env";
+
+nextEnv.loadEnvConfig(process.cwd());
+
+const { createWorker } = await import("./processor");
 
 const worker = createWorker();
 

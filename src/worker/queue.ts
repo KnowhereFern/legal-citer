@@ -1,12 +1,9 @@
 import { Queue } from "bullmq";
-import * as nextEnv from "@next/env";
 import type { PipelineConfig } from "@/lib/types";
-
-nextEnv.loadEnvConfig(process.cwd());
 
 export const QUEUE_NAME = "verification-runs";
 
-export const redisConnection = (() => {
+export function getRedisConnection() {
   const url = process.env.REDIS_URL;
   if (url) {
     const parsed = new URL(url);
@@ -17,18 +14,23 @@ export const redisConnection = (() => {
     };
   }
   return { host: "localhost", port: 6379 };
-})();
+}
 
-export const verificationQueue = new Queue(QUEUE_NAME, {
-  connection: redisConnection,
-});
+let _queue: Queue | null = null;
+
+export function getVerificationQueue() {
+  if (!_queue) {
+    _queue = new Queue(QUEUE_NAME, { connection: getRedisConnection() });
+  }
+  return _queue;
+}
 
 export async function enqueueVerificationJob(data: {
   runId: string;
   documentId: string;
   config: PipelineConfig;
 }) {
-  return verificationQueue.add("verification", data, {
+  return getVerificationQueue().add("verification", data, {
     jobId: data.runId,
     removeOnComplete: 100,
     removeOnFail: 50,

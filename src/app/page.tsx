@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-context";
 import { Scale, ShieldCheck, Zap, FileSearch } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const { userId } = await getAuthContext();
   if (userId) {

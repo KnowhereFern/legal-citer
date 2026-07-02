@@ -8,6 +8,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+export const dynamic = "force-dynamic";
 import { Separator } from "@/components/ui/separator";
 
 const RISK_COLORS: Record<string, string> = {
