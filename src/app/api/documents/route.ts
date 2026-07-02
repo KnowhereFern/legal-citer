@@ -7,10 +7,15 @@ import { logAuditEvent } from "@/lib/audit";
 import { resolveWorkspace } from "@/lib/workspace";
 
 export async function POST(request: NextRequest) {
+  const { auth } = await import("@clerk/nextjs/server");
+  const rawAuth = await auth();
+  console.log("[upload] auth() result:", { userId: rawAuth.userId, orgId: rawAuth.orgId });
+
   const workspace = await resolveWorkspace();
+  console.log("[upload] workspace:", workspace);
 
   if (!workspace) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized", debug: { userId: rawAuth.userId } }, { status: 401 });
   }
 
   const { orgId, userId } = workspace;

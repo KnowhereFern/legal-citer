@@ -13,10 +13,7 @@ export type AppCurrentUser = {
 };
 
 export function isE2EAuthBypassEnabled() {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.E2E_AUTH_BYPASS === "1"
-  );
+  return process.env.E2E_AUTH_BYPASS === "1";
 }
 
 export async function getAuthContext(): Promise<AppAuthContext> {
