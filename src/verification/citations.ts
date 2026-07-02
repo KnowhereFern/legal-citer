@@ -1,14 +1,14 @@
 import type { Citation, QuotedSpan } from "@/lib/types";
 
 const CASE_CITATION =
-  /[A-Z][a-zA-Z'.\-]+ v\. [A-Z][a-zA-Z'.\-]+,?\s*\d+\s+[A-Z0-9.a-z ]+\d+\s*\(\d{4}\)/g;
+  /[A-Z][A-Za-z'.\-,&\s]+?\sv\.\s[A-Z][A-Za-z'.\-,&\s]+?\d+\s+[A-Z][A-Za-z0-9.]+(?:\s+[A-Za-z0-9.]+)*\s+\d+(?:,\s*\d+)?\s*\([^)]*\d{4}\)/g;
 
 const STATUTE_CITATION = /\d+\s+U\.S\.C\.\s*§\s*\d+[a-z0-9\-]*/g;
 
-const FEDERAL_REPORTER = /\d+\s+F\.(2d|3d|4th)\s+\d+/g;
+const FEDERAL_REPORTER = /\d+\s+F\.(2d|3d|4th|Supp\.)\s+\d+/g;
 
 const STATE_REPORTER =
-  /\d+\s+[A-Z]{2,}\.(?:S\.(?:2d|3d|4th)|2d|3d|4th)?\s+\d+/g;
+  /\d+\s+(?:So\.|Fla\.|P\.|A\.|N\.W\.|S\.E\.|N\.E\.|S\.W\.|Cal\.|N\.Y\.S\.|Pac\.|Atl\.)\s*(?:2d|3d|4th)?\s+\d+/g;
 
 const CITATION_PATTERNS = [
   CASE_CITATION,
@@ -17,7 +17,17 @@ const CITATION_PATTERNS = [
   STATE_REPORTER,
 ];
 
-export function extractCitations(text: string): Citation[] {
+function normalizeText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/ \n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+,\s*/g, ", ")
+    .replace(/\s+;\s*/g, "; ");
+}
+
+export function extractCitations(rawText: string): Citation[] {
+  const text = normalizeText(rawText);
   const results: Citation[] = [];
   const seen = new Set<string>();
 
@@ -25,11 +35,12 @@ export function extractCitations(text: string): Citation[] {
     let match: RegExpExecArray | null;
     const regex = new RegExp(pattern.source, pattern.flags);
     while ((match = regex.exec(text)) !== null) {
-      const key = `${match.index}:${match[0]}`;
-      if (!seen.has(key)) {
-        seen.add(key);
+      const citeText = match[0].trim().replace(/\s+/g, " ");
+      const normKey = citeText.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!seen.has(normKey)) {
+        seen.add(normKey);
         results.push({
-          text: match[0],
+          text: citeText,
           spanStart: match.index,
           spanEnd: match.index + match[0].length,
         });
@@ -37,8 +48,19 @@ export function extractCitations(text: string): Citation[] {
     }
   }
 
-  results.sort((a, b) => a.spanStart - b.spanStart);
-  return results;
+  const filtered = results.filter((c) => {
+    const isInsideAnother = results.some(
+      (other) =>
+        other !== c &&
+        other.text !== c.text &&
+        other.spanStart <= c.spanStart &&
+        other.spanEnd >= c.spanEnd
+    );
+    return !isInsideAnother;
+  });
+
+  filtered.sort((a, b) => a.spanStart - b.spanStart);
+  return filtered;
 }
 
 export function extractQuotedSpans(text: string): QuotedSpan[] {

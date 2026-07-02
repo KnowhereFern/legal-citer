@@ -138,6 +138,7 @@ export async function runVerification(params: {
           });
         }
       }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
     await updateStage(runId, "run_checks", "completed", {

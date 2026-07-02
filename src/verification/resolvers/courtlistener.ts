@@ -1,18 +1,21 @@
 import type { Citation, ResolverResult } from "@/lib/types";
 import type { AuthorityResolver } from "./index";
 
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 1000;
-const BASE_URL = "https://www.courtlistener.com/api/rest/v3";
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 2000;
+const RATE_LIMIT_DELAY_MS = 13000;
+const BASE_URL = "https://www.courtlistener.com/api/rest/v4";
 
 interface CitationLookupResult {
   clusters: Array<{
     case_name: string;
     citations: Array<{ cite: string }>;
     date_filed: string;
-    sub_opinions: Array<{ resource_uri: string }>;
+    sub_opinions: string[];
   }>;
 }
+
+interface CitationLookupResponse extends Array<CitationLookupResult> {}
 
 interface OpinionResponse {
   plain_text: string;
@@ -37,7 +40,17 @@ async function fetchWithRetry(
 
       if (response.status === 429) {
         if (attempt < retries) {
-          await sleep(RETRY_DELAY_MS * (attempt + 1));
+          let waitMs = RATE_LIMIT_DELAY_MS;
+          try {
+            const body = await response.clone().json();
+            const match = typeof body?.detail === "string"
+              ? body.detail.match(/available in (\d+) seconds/i)
+              : null;
+            if (match) {
+              waitMs = (parseInt(match[1], 10) + 1) * 1000;
+            }
+          } catch {}
+          await sleep(waitMs);
           continue;
         }
         return response;
@@ -78,21 +91,22 @@ export class CourtListenerResolver implements AuthorityResolver {
     try {
       const lookupResult = await this.lookupCitation(citation.text);
 
+      const firstHit = lookupResult[0];
       if (
-        !lookupResult.clusters ||
-        lookupResult.clusters.length === 0
+        !firstHit?.clusters ||
+        firstHit.clusters.length === 0
       ) {
         return { status: "unresolved" };
       }
 
-      const cluster = lookupResult.clusters[0];
+      const cluster = firstHit.clusters[0];
       const subOpinions = cluster.sub_opinions;
 
       if (!subOpinions || subOpinions.length === 0) {
         return { status: "unresolved" };
       }
 
-      const opinionUrl = subOpinions[0].resource_uri;
+      const opinionUrl = subOpinions[0];
       const opinion = await this.fetchOpinion(opinionUrl);
 
       const caseName =
@@ -124,7 +138,7 @@ export class CourtListenerResolver implements AuthorityResolver {
 
   private async lookupCitation(
     text: string,
-  ): Promise<CitationLookupResult> {
+  ): Promise<CitationLookupResponse> {
     const url = `${BASE_URL}/citation-lookup/`;
     const body = new URLSearchParams();
     body.append("text", text);
@@ -144,7 +158,7 @@ export class CourtListenerResolver implements AuthorityResolver {
       );
     }
 
-    return response.json() as Promise<CitationLookupResult>;
+    return response.json() as Promise<CitationLookupResponse>;
   }
 
   private async fetchOpinion(
