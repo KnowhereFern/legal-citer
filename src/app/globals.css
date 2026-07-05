@@ -254,4 +254,23 @@
   html {
     @apply font-sans;
   }
+  /* Even headline wrapping: distribute lines so the gradient word doesn't strand
+     on its own line; pretty-wrap body prose to reduce orphans. */
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p, li {
+    text-wrap: pretty;
+  }
+  /* Respect reduced-motion globally. The landing page uses neon radial glows and
+     blur; users who opt out of motion should not get a light show. Any future
+     animation utilities must be silenced here too. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

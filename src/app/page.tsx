@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ShieldCheck, Zap, FileSearch, Receipt } from "lucide-react";
+import { ShieldCheck, Zap, FileSearch, Receipt, User, Briefcase } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export default async function HomePage() {
             {BRAND.company}
           </span>
         </Link>
-        <Button variant="ghost" size="lg" render={<Link href="/sign-in" />}>
+        <Button variant="ghost" size="lg" nativeButton={false} render={<Link href="/sign-in" />}>
           Sign In
         </Button>
       </header>
@@ -46,22 +46,22 @@ export default async function HomePage() {
             {BRAND.tagline}
           </div>
 
-          <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="max-w-3xl text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {BRAND.headline.split(" ").slice(0, -1).join(" ")}{" "}
             <span className="bg-gradient-to-r from-[#ff69b4] to-[#00ffff] bg-clip-text text-transparent">
               {BRAND.headline.split(" ").slice(-1)}.
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
+          <p className="mt-6 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
             {BRAND.subheadline}
           </p>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" render={<Link href="/sign-up" />}>
+            <Button size="lg" nativeButton={false} render={<Link href="/sign-up" />}>
               Check a document
             </Button>
-            <Button variant="outline" size="lg" render={<Link href="/sample" />}>
+            <Button variant="outline" size="lg" nativeButton={false} render={<Link href="/sample" />}>
               View sample report
             </Button>
           </div>
@@ -72,37 +72,37 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-20 grid w-full max-w-5xl grid-cols-1 gap-6 sm:grid-cols-3">
-          <Card className="text-left transition-colors hover:border-primary/30">
+          <Card className="text-left ring-foreground/10 transition-all hover:ring-primary/40 hover:shadow-[0_0_24px_-6px_rgba(255,105,180,0.35)]">
             <CardHeader>
               <FileSearch className="size-5 text-primary" />
               <CardTitle className="mt-2">Find every cite</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-pretty text-sm text-muted-foreground">
                 We scan your filing for cases, statutes, rules, and record citations.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="text-left transition-colors hover:border-primary/30">
+          <Card className="text-left ring-foreground/10 transition-all hover:ring-primary/40 hover:shadow-[0_0_24px_-6px_rgba(255,105,180,0.35)]">
             <CardHeader>
               <ShieldCheck className="size-5 text-primary" />
               <CardTitle className="mt-2">Check sources and quotes</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-pretty text-sm text-muted-foreground">
                 We flag fake citations, mismatched details, and quotes that do not line up.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="text-left transition-colors hover:border-primary/30">
+          <Card className="text-left ring-foreground/10 transition-all hover:ring-primary/40 hover:shadow-[0_0_24px_-6px_rgba(255,105,180,0.35)]">
             <CardHeader>
               <Zap className="size-5 text-primary" />
               <CardTitle className="mt-2">Create a verification record</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-pretty text-sm text-muted-foreground">
                 Download a clean summary for your file, client, or court attachment.
               </p>
             </CardContent>
@@ -111,7 +111,7 @@ export default async function HomePage() {
 
         {/* How it works */}
         <div className="mt-24 w-full max-w-5xl">
-          <h2 className="text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="text-balance text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             How it works
           </h2>
           <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
@@ -133,13 +133,13 @@ export default async function HomePage() {
               },
             ].map((s) => (
               <div key={s.step} className="text-left">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary ring-1 ring-inset ring-primary/25">
                   {s.step}
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">
                   {s.title}
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.body}</p>
+                <p className="mt-2 text-pretty text-sm text-muted-foreground">{s.body}</p>
               </div>
             ))}
           </div>
@@ -147,23 +147,27 @@ export default async function HomePage() {
 
         {/* Who it's for */}
         <div className="mt-24 grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
-          <Card className="text-left">
+          <Card className="text-left ring-foreground/10">
             <CardHeader>
-              <CardTitle>For self-represented filers</CardTitle>
+              <User className="size-5 text-primary" />
+              <CardTitle className="mt-2">Filing pro se</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Check whether the cases and quotes in your filing appear to be real before you submit.
+              <p className="text-pretty text-sm text-muted-foreground">
+                You're representing yourself. Before you file, know which citations are
+                real, which aren't, and which say something they don't.
               </p>
             </CardContent>
           </Card>
-          <Card className="text-left">
+          <Card className="text-left ring-foreground/10">
             <CardHeader>
-              <CardTitle>For attorneys and legal teams</CardTitle>
+              <Briefcase className="size-5 text-secondary" />
+              <CardTitle className="mt-2">Practicing attorney</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Create a verification trail for AI-assisted work, citation checks, and pre-filing review.
+              <p className="text-pretty text-sm text-muted-foreground">
+                You're filing for a client. Build a verification trail for AI-assisted
+                drafts and a cite-check pass before the clerk does.
               </p>
             </CardContent>
           </Card>
@@ -175,11 +179,10 @@ export default async function HomePage() {
           <p className="text-xs text-muted-foreground">
             {BRAND.domain} — {BRAND.tagline}
           </p>
-          <nav className="flex items-center gap-4 text-xs text-muted-foreground">
+          <nav className="flex items-center gap-6 text-xs text-muted-foreground">
             <Link href="/terms" className="transition-colors hover:text-foreground">
               Terms
             </Link>
-            <span className="text-border">·</span>
             <Link href="/privacy" className="transition-colors hover:text-foreground">
               Privacy
             </Link>
