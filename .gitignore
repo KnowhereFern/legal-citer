@@ -27,3 +27,7 @@ Fern_Project_Proposals.xlsx
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Tooling artifacts
+.playwright-mcp/
+.codex/
