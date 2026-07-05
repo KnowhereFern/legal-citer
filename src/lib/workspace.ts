@@ -10,10 +10,13 @@ export async function resolveWorkspace(): Promise<{
   if (!userId) return null;
 
   if (clerkOrgId) {
-    const org = await prisma.organization.findUnique({
+    // Auto-provision so a logged-in org member is never bounced to /sign-in
+    // (e.g. if the `organization.created` webhook was missed or delayed).
+    const org = await prisma.organization.upsert({
       where: { clerkOrgId },
+      create: { clerkOrgId, name: "Clerk organization" },
+      update: {},
     });
-    if (!org) return null;
     return { orgId: org.id, userId, isPersonal: false };
   }
 
