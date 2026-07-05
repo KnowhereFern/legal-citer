@@ -3,6 +3,7 @@ import {
   LegalBulletList,
   LegalCallout,
   LegalH3,
+  LegalLink,
   LegalList,
   LegalP,
   LegalPage,
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <LegalPage
+      currentPath="/privacy"
       title="Privacy Policy"
       subtitle={`How ${BRAND.company} collects, uses, discloses, protects, and retains information.`}
       intro={
@@ -31,12 +33,11 @@ export default function PrivacyPage() {
           <br />
           <br />
           This Privacy Policy is designed for a pre-filing verification service
-          that may process legal documents and sensitive information. It should
-          be reviewed by privacy counsel before launch.
+          that may process legal documents and sensitive information.
         </>
       }
     >
-      <LegalSection title="1. Scope">
+      <LegalSection id="scope" title="1. Scope">
         <LegalP>
           This Privacy Policy applies to information we process through the
           Service. It does not apply to third-party websites, legal research
@@ -52,7 +53,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="2. Information We Collect">
+      <LegalSection id="information-we-collect" title="2. Information We Collect">
         <LegalP>We may collect the following categories of information.</LegalP>
 
         <LegalH3>Account Information</LegalH3>
@@ -95,7 +96,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="3. How We Use Information">
+      <LegalSection id="how-we-use-information" title="3. How We Use Information">
         <LegalP>We may use information to:</LegalP>
         <LegalList
           items={[
@@ -115,7 +116,7 @@ export default function PrivacyPage() {
         />
       </LegalSection>
 
-      <LegalSection title="4. AI Processing and Model Training">
+      <LegalSection id="ai-processing-and-model-training" title="4. AI Processing and Model Training">
         <LegalP>
           The Service may use deterministic scripts, OCR, citation parsers,
           source resolvers, machine learning, and AI systems to process
@@ -135,7 +136,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="5. Retention">
+      <LegalSection id="retention" title="5. Retention">
         <LegalP>
           Retention may vary by plan, workspace settings, document type, user
           choice, legal obligations, security needs, and technical constraints.
@@ -158,7 +159,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="6. How We Share Information">
+      <LegalSection id="how-we-share-information" title="6. How We Share Information">
         <LegalP>
           We may share information with the following categories of recipients.
         </LegalP>
@@ -204,7 +205,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="7. Public Verification Pages">
+      <LegalSection id="public-verification-pages" title="7. Public Verification Pages">
         <LegalP>
           The Service may let users create public or shareable verification
           pages. These pages may display limited information such as
@@ -219,7 +220,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="8. Cookies and Analytics">
+      <LegalSection id="cookies-and-analytics" title="8. Cookies and Analytics">
         <LegalP>
           We may use cookies, pixels, local storage, and similar technologies
           to operate the Service, keep users signed in, remember preferences,
@@ -231,7 +232,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="9. Marketing Communications">
+      <LegalSection id="marketing-communications" title="9. Marketing Communications">
         <LegalP>
           We may send product updates, newsletters, promotions, and event
           notices where permitted. You may opt out of marketing emails by using
@@ -240,7 +241,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="10. Security">
+      <LegalSection id="security" title="10. Security">
         <LegalP>
           We use administrative, technical, and organizational safeguards
           designed to protect information, such as access controls, encryption
@@ -255,7 +256,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="11. Your Privacy Choices">
+      <LegalSection id="your-privacy-choices" title="11. Your Privacy Choices">
         <LegalP>
           Depending on your location and the laws that apply, you may have
           rights to request access, correction, deletion, portability,
@@ -264,9 +265,9 @@ export default function PrivacyPage() {
         </LegalP>
         <LegalCallout>
           To make a privacy request, contact us at{" "}
-          <a className="underline" href={`mailto:${LEGAL.privacyEmail}`}>
+          <LegalLink href={`mailto:${LEGAL.privacyEmail}`}>
             {LEGAL.privacyEmail}
-          </a>
+          </LegalLink>
           . We may need to verify your identity and authority before
           responding. We may deny or limit requests where permitted by law,
           including where retention is required for security, legal,
@@ -275,7 +276,7 @@ export default function PrivacyPage() {
         </LegalCallout>
       </LegalSection>
 
-      <LegalSection title="12. U.S. State Privacy Notice">
+      <LegalSection id="us-state-privacy-notice" title="12. U.S. State Privacy Notice">
         <LegalP>
           Some U.S. state privacy laws require additional disclosures.
           Depending on your location, the categories of personal information we
@@ -293,7 +294,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="13. Sensitive Information">
+      <LegalSection id="sensitive-information" title="13. Sensitive Information">
         <LegalP>
           Legal filings may include sensitive personal information, confidential
           case information, financial information, health information,
@@ -310,7 +311,7 @@ export default function PrivacyPage() {
         />
       </LegalSection>
 
-      <LegalSection title="14. Children">
+      <LegalSection id="children" title="14. Children">
         <LegalP>
           The Service is not intended for children under 18. We do not
           knowingly collect personal information from children under 13. If you
@@ -319,7 +320,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="15. International Users">
+      <LegalSection id="international-users" title="15. International Users">
         <LegalP>
           The Service may be operated from the United States and other
           locations. By using the Service, you understand that information may
@@ -328,7 +329,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="16. Third-Party Links and Integrations">
+      <LegalSection id="third-party-links-and-integrations" title="16. Third-Party Links and Integrations">
         <LegalP>
           The Service may link to or integrate with third-party websites, court
           systems, legal research tools, payment processors, authentication
@@ -338,7 +339,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="17. Changes to This Privacy Policy">
+      <LegalSection id="changes-to-this-privacy-policy" title="17. Changes to This Privacy Policy">
         <LegalP>
           We may update this Privacy Policy from time to time. The updated
           version will be posted with a new “Last updated” date. If changes are
@@ -346,7 +347,7 @@ export default function PrivacyPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="18. Contact">
+      <LegalSection id="contact" title="18. Contact">
         <LegalP>
           Questions or privacy requests may be sent to {LEGAL.entityName} at the
           address and emails below.

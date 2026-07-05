@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalPage
+      currentPath="/terms"
       title="Terms of Service"
       subtitle={`These terms govern your use of ${BRAND.company}, ${BRAND.product}, and related services.`}
       intro={
@@ -36,7 +37,7 @@ export default function TermsPage() {
         </>
       }
     >
-      <LegalSection title="1. What BaddieLegal Does">
+      <LegalSection id="what-baddielegal-does" title="1. What BaddieLegal Does">
         <LegalP>
           {BRAND.company} provides a machine-assisted pre-filing verification
           workflow. The Service may help users identify, extract, normalize, and
@@ -53,7 +54,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="2. No Legal Advice; No Attorney-Client Relationship">
+      <LegalSection id="no-legal-advice-no-attorney-client-relationship" title="2. No Legal Advice; No Attorney-Client Relationship">
         <LegalP>
           {BRAND.company} is not a law firm. {BRAND.company} does not provide
           legal advice, legal representation, legal opinions, litigation
@@ -85,7 +86,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="3. Not Court-Approved; No Filing Guarantee">
+      <LegalSection id="not-court-approved-no-filing-guarantee" title="3. Not Court-Approved; No Filing Guarantee">
         <LegalP>
           {BRAND.company} is not affiliated with, endorsed by, approved by, or
           certified by any court, clerk, judge, bar association, government
@@ -106,7 +107,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="4. Eligibility and Accounts">
+      <LegalSection id="eligibility-and-accounts" title="4. Eligibility and Accounts">
         <LegalP>
           You must be at least 18 years old and legally able to enter into these
           Terms. You must provide accurate account information and keep it
@@ -119,7 +120,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="5. User Roles and Organizations">
+      <LegalSection id="user-roles-and-organizations" title="5. User Roles and Organizations">
         <LegalP>
           If you use the Service through a law firm, company, school, clinic,
           legal aid organization, or other workspace, your access may be
@@ -134,7 +135,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="6. Your Documents and Content">
+      <LegalSection id="your-documents-and-content" title="6. Your Documents and Content">
         <LegalP>
           “Your Content” means documents, text, prompts, citations, files,
           metadata, comments, review decisions, reports you upload for
@@ -156,7 +157,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="7. Confidentiality and Sensitive Documents">
+      <LegalSection id="confidentiality-and-sensitive-documents" title="7. Confidentiality and Sensitive Documents">
         <LegalP>
           The Service may process legal filings, drafts, case materials,
           personally identifiable information, confidential business
@@ -173,7 +174,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="8. AI and Automated Processing">
+      <LegalSection id="ai-and-automated-processing" title="8. AI and Automated Processing">
         <LegalP>
           The Service may use deterministic scripts, citation parsers, source
           resolvers, OCR, document classification, machine learning, large
@@ -193,7 +194,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="9. Verification Records, Reports, and Public Verification Pages">
+      <LegalSection id="verification-records-reports-and-public-verification-pages" title="9. Verification Records, Reports, and Public Verification Pages">
         <LegalP>
           The Service may generate public-facing summaries, private exception
           reports, downloadable PDFs, audit metadata, hashes, timestamps, and
@@ -219,7 +220,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="10. Source Coverage and Third-Party Sources">
+      <LegalSection id="source-coverage-and-third-party-sources" title="10. Source Coverage and Third-Party Sources">
         <LegalP>
           The Service may check authorities against public, proprietary, court,
           commercial, government, or third-party data sources. Source
@@ -241,7 +242,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="11. Acceptable Use">
+      <LegalSection id="acceptable-use" title="11. Acceptable Use">
         <LegalP>You agree not to:</LegalP>
         <LegalList
           items={[
@@ -260,7 +261,7 @@ export default function TermsPage() {
         />
       </LegalSection>
 
-      <LegalSection title="12. User Responsibilities for Filings">
+      <LegalSection id="user-responsibilities-for-filings" title="12. User Responsibilities for Filings">
         <LegalP>You are solely responsible for:</LegalP>
         <LegalList
           items={[
@@ -280,7 +281,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="13. Payments, Credits, and Subscriptions">
+      <LegalSection id="payments-credits-and-subscriptions" title="13. Payments, Credits, and Subscriptions">
         <LegalP>
           Fees, plan terms, usage limits, overages, taxes, and payment terms
           are shown at checkout or in your order form. You authorize us and our
@@ -301,7 +302,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="14. Free Trials, Beta Features, and Early Access">
+      <LegalSection id="free-trials-beta-features-and-early-access" title="14. Free Trials, Beta Features, and Early Access">
         <LegalP>
           We may offer free trials, previews, beta features, experimental
           checks, or early access functionality. These features may be limited,
@@ -313,7 +314,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="15. Retention and Deletion">
+      <LegalSection id="retention-and-deletion" title="15. Retention and Deletion">
         <LegalP>
           Retention settings may vary by plan, workspace policy, document type,
           and user choice. We may delete raw uploads, extracted text, temporary
@@ -331,7 +332,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="16. Service Availability and Changes">
+      <LegalSection id="service-availability-and-changes" title="16. Service Availability and Changes">
         <LegalP>
           We may modify, suspend, limit, or discontinue any part of the Service
           at any time. We may impose file size limits, page limits, source
@@ -345,7 +346,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="17. Intellectual Property">
+      <LegalSection id="intellectual-property" title="17. Intellectual Property">
         <LegalP>
           {BRAND.company} and its licensors own all rights in the Service,
           software, workflows, interfaces, designs, models, code, trademarks,
@@ -361,7 +362,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="18. Feedback">
+      <LegalSection id="feedback" title="18. Feedback">
         <LegalP>
           If you provide ideas, suggestions, bug reports, or feedback, you grant{" "}
           {BRAND.company} a perpetual, irrevocable, worldwide, royalty-free
@@ -369,7 +370,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="19. Third-Party Services">
+      <LegalSection id="third-party-services" title="19. Third-Party Services">
         <LegalP>
           The Service may integrate with third-party services such as
           authentication providers, cloud hosting providers, storage providers,
@@ -385,7 +386,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="20. Disclaimers">
+      <LegalSection id="disclaimers" title="20. Disclaimers">
         <LegalCallout>
           THE SERVICE AND ALL OUTPUTS ARE PROVIDED “AS IS” AND “AS AVAILABLE.”
           TO THE MAXIMUM EXTENT PERMITTED BY LAW, {BRAND.company.toUpperCase()}{" "}
@@ -408,7 +409,7 @@ export default function TermsPage() {
         </LegalCallout>
       </LegalSection>
 
-      <LegalSection title="21. Limitation of Liability">
+      <LegalSection id="limitation-of-liability" title="21. Limitation of Liability">
         <LegalCallout>
           TO THE MAXIMUM EXTENT PERMITTED BY LAW, {BRAND.company.toUpperCase()}{" "}
           WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
@@ -434,7 +435,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="22. Indemnification">
+      <LegalSection id="indemnification" title="22. Indemnification">
         <LegalP>
           You will defend, indemnify, and hold harmless {BRAND.company}, its
           affiliates, officers, directors, employees, contractors, agents,
@@ -455,7 +456,7 @@ export default function TermsPage() {
         />
       </LegalSection>
 
-      <LegalSection title="23. Suspension and Termination">
+      <LegalSection id="suspension-and-termination" title="23. Suspension and Termination">
         <LegalP>
           We may suspend or terminate your access if we believe you violated
           these Terms, created risk for the Service or other users, failed to
@@ -471,7 +472,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="24. Governing Law">
+      <LegalSection id="governing-law" title="24. Governing Law">
         <LegalP>
           These Terms are governed by the laws of the State of{" "}
           {LEGAL.governingState}, without regard to conflict-of-law rules,
@@ -480,11 +481,10 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="25. Dispute Resolution; Arbitration; Class Action Waiver">
+      <LegalSection id="dispute-resolution-arbitration-class-action-waiver" title="25. Dispute Resolution; Arbitration; Class Action Waiver">
         <LegalCallout>
           Arbitration and class-action waivers may be limited by law, may
           require special notice, and may not apply to all users or claims.
-          Please review this section with legal counsel before launch.
         </LegalCallout>
         <LegalP>
           Except for small claims, intellectual property claims, or claims for
@@ -502,7 +502,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="26. Changes to These Terms">
+      <LegalSection id="changes-to-these-terms" title="26. Changes to These Terms">
         <LegalP>
           We may update these Terms from time to time. The updated Terms will be
           posted with a new “Last updated” date. If changes are material, we may
@@ -511,7 +511,7 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection title="27. Contact">
+      <LegalSection id="contact" title="27. Contact">
         <LegalP>
           Questions about these Terms may be sent to {LEGAL.entityName} at the
           address and emails below.

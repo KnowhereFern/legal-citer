@@ -50,7 +50,16 @@ export function RetentionSection({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Numeric validation: a cleared field becomes "" and Number("") is 0, which would
+  // otherwise post 0 hours and purge instantly. Treat empty/<=0 as invalid.
+  const rawValid = Number(rawFileHours) >= 1;
+  const textValid = Number(extractedTextHours) >= 1;
+  const reportValid =
+    keepReportsForever || (reportHours === "" || Number(reportHours) >= 1);
+  const retentionValid = rawValid && textValid && reportValid;
+
   const handleSave = async () => {
+    if (!retentionValid) return;
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -88,6 +97,7 @@ export function RetentionSection({
         <CardDescription>
           Control how long uploaded source files, extracted text, and reports
           are kept. These are the defaults for the workspace retention policy.
+          Changes apply when you click Save.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
@@ -105,6 +115,9 @@ export function RetentionSection({
             <p className="text-xs text-muted-foreground">
               Original uploaded files are purged after this many hours.
             </p>
+            {!rawValid && (
+              <p className="text-xs text-destructive">Enter at least 1 hour.</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -120,6 +133,9 @@ export function RetentionSection({
             <p className="text-xs text-muted-foreground">
               Text extracted from uploads is purged after this many hours.
             </p>
+            {!textValid && (
+              <p className="text-xs text-destructive">Enter at least 1 hour.</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">
@@ -144,6 +160,11 @@ export function RetentionSection({
                 Keep reports indefinitely
               </label>
             </div>
+            {!reportValid && (
+              <p className="text-xs text-destructive">
+                Enter at least 1 hour, or keep reports indefinitely.
+              </p>
+            )}
           </div>
         </div>
 
@@ -165,7 +186,7 @@ export function RetentionSection({
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex items-center">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={!retentionValid || saving}>
             {saving ? (
               <>
                 <Spinner data-icon="inline-start" />

@@ -42,6 +42,7 @@ type OrgData = SettingsData["org"];
 export function DataSection({ org }: { org: OrgData }) {
   const [format, setFormat] = useState<"csv" | "json">("csv");
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -49,6 +50,7 @@ export function DataSection({ org }: { org: OrgData }) {
 
   const handleExport = async () => {
     setExporting(true);
+    setExportError(null);
     try {
       const res = await fetch(`/api/settings/data/export?format=${format}`);
       if (!res.ok) throw new Error("Export failed");
@@ -62,7 +64,9 @@ export function DataSection({ org }: { org: OrgData }) {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      // surfaced via disabled state; keep simple for MVP
+      setExportError(
+        "Export didn't finish. Try again, or contact us if it keeps failing."
+      );
     } finally {
       setExporting(false);
     }
@@ -106,14 +110,14 @@ export function DataSection({ org }: { org: OrgData }) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label>Format</Label>
+            <Label htmlFor="data-export-format">Format</Label>
             <Select
               value={format}
               onValueChange={(v: string | null) =>
                 setFormat((v ?? "csv") as "csv" | "json")
               }
             >
-              <SelectTrigger className="w-full sm:w-40">
+              <SelectTrigger id="data-export-format" className="w-full sm:w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -136,6 +140,11 @@ export function DataSection({ org }: { org: OrgData }) {
                 </>
               )}
             </Button>
+            {exportError && (
+              <Alert variant="destructive" className="mt-3">
+                <AlertDescription>{exportError}</AlertDescription>
+              </Alert>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -81,6 +81,7 @@ export function WorkspaceSection({
           <CardTitle>Workspace</CardTitle>
           <CardDescription>
             These defaults are applied to every new upload in this workspace.
+            Changes apply when you click Save below.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -97,14 +98,14 @@ export function WorkspaceSection({
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label>Default jurisdiction</Label>
+              <Label htmlFor="ws-jurisdiction">Default jurisdiction</Label>
               <Select
                 value={jurisdiction}
                 onValueChange={(v: string | null) =>
                   setJurisdiction(v ?? "")
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="ws-jurisdiction" className="w-full">
                   <SelectValue placeholder="Select court" />
                 </SelectTrigger>
                 <SelectContent>
@@ -118,14 +119,14 @@ export function WorkspaceSection({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Default filing type</Label>
+              <Label htmlFor="ws-filing-type">Default filing type</Label>
               <Select
                 value={filingType}
                 onValueChange={(v: string | null) =>
                   setFilingType(v ?? "")
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="ws-filing-type" className="w-full">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>

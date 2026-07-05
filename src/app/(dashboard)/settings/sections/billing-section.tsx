@@ -28,7 +28,16 @@ export function BillingSection({ billing }: { billing: BillingData }) {
         <CardContent className="flex items-center gap-3">
           <Badge variant="secondary">{plan}</Badge>
           <span className="text-sm text-muted-foreground">
-            Upgrading and downgrading is coming soon.
+            Plan changes aren&apos;t available yet.{" "}
+            <a
+              href={`mailto:${
+                process.env.NEXT_PUBLIC_LEGAL_CONTACT_EMAIL || "support@baddielegal.com"
+              }`}
+              className="text-primary hover:underline"
+            >
+              Contact us
+            </a>{" "}
+            to upgrade.
           </span>
         </CardContent>
       </Card>

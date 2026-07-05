@@ -10,12 +10,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
-import { statusBadgeClass } from "@/lib/status-colors";
+import { RunStatusBadge } from "@/components/status-badge";
 import { Card } from "@/components/ui/card";
 import { Activity, UploadCloud } from "lucide-react";
+
+/** Deterministic absolute timestamp for the `title` tooltip (server-locale-proof). */
+const ABS_FMT = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** Plain-English relative time ("2h ago"). Computed at render; refresh to update. */
+function timeAgo(date: Date): string {
+  const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.round(months / 12)}y ago`;
+}
 
 export default async function RunsPage() {
   const workspace = await resolveWorkspace();
@@ -47,7 +70,7 @@ export default async function RunsPage() {
               Upload a document to start your first citation verification.
             </p>
           </div>
-          <Button size="lg" render={<Link href="/upload" />}>
+          <Button size="lg" nativeButton={false} render={<Link href="/upload" />}>
             <UploadCloud data-icon="inline-start" />
             Upload Document
           </Button>
@@ -59,41 +82,65 @@ export default async function RunsPage() {
               <TableRow>
                 <TableHead>Document</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Started</TableHead>
-                <TableHead>Completed</TableHead>
+                {/* Timestamps collapse to an inline relative line on mobile. */}
+                <TableHead className="hidden sm:table-cell">Started</TableHead>
+                <TableHead className="hidden sm:table-cell">Completed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {runs.map((run: { id: string; status: string; startedAt: Date | null; completedAt: Date | null; document: { filename: string } }) => (
-                <TableRow key={run.id}>
-                  <TableCell>
-                    <Link
-                      href={`/runs/${run.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {run.document.filename}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={statusBadgeClass(run.status)}
-                    >
-                      {run.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {run.startedAt
-                      ? run.startedAt.toLocaleString()
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {run.completedAt
-                      ? run.completedAt.toLocaleString()
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {runs.map(
+                (run: {
+                  id: string;
+                  status: string;
+                  startedAt: Date | null;
+                  completedAt: Date | null;
+                  document: { filename: string };
+                }) => (
+                  <TableRow key={run.id} className="relative">
+                    <TableCell className="whitespace-normal break-words">
+                      {/* Stretched link: the after-pseudo fills the row so the whole
+                          row is clickable + keyboard-focusable; .focus-ring gives the
+                          pink keyboard indicator (DESIGN.md §Focus). */}
+                      <Link
+                        href={`/runs/${run.id}`}
+                        className="focus-ring after:absolute after:inset-0 after:content-['']"
+                      >
+                        <span className="relative z-10 font-medium">
+                          {run.document.filename}
+                        </span>
+                      </Link>
+                      <div className="text-xs text-muted-foreground sm:hidden">
+                        {run.startedAt
+                          ? `Started ${timeAgo(run.startedAt)}`
+                          : "Not started yet"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="relative z-10 inline-block">
+                        <RunStatusBadge value={run.status} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                      {run.startedAt ? (
+                        <span title={ABS_FMT.format(run.startedAt)}>
+                          {timeAgo(run.startedAt)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                      {run.completedAt ? (
+                        <span title={ABS_FMT.format(run.completedAt)}>
+                          {timeAgo(run.completedAt)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ),
+              )}
             </TableBody>
           </Table>
         </div>
