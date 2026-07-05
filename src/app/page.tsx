@@ -154,8 +154,8 @@ export default async function HomePage() {
             </CardHeader>
             <CardContent>
               <p className="text-pretty text-sm text-muted-foreground">
-                You're representing yourself. Before you file, know which citations are
-                real, which aren't, and which say something they don't.
+                You&apos;re representing yourself. Before you file, know which citations are
+                real, which aren&apos;t, and which say something they don&apos;t.
               </p>
             </CardContent>
           </Card>
@@ -166,7 +166,7 @@ export default async function HomePage() {
             </CardHeader>
             <CardContent>
               <p className="text-pretty text-sm text-muted-foreground">
-                You're filing for a client. Build a verification trail for AI-assisted
+                You&apos;re filing for a client. Build a verification trail for AI-assisted
                 drafts and a cite-check pass before the clerk does.
               </p>
             </CardContent>

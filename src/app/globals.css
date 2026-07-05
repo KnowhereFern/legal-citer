@@ -262,6 +262,12 @@
   p, li {
     text-wrap: pretty;
   }
+  /* Shared keyboard-focus treatment for interactive elements that aren't native
+     form controls — links-as-buttons, table row links, sidebar nav, inline legal
+     links. The pink ring is the brand in the keyboard layer (DESIGN.md §Focus). */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-0;
+  }
   /* Respect reduced-motion globally. The landing page uses neon radial glows and
      blur; users who opt out of motion should not get a light show. Any future
      animation utilities must be silenced here too. */

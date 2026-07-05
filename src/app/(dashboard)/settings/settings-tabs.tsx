@@ -55,7 +55,10 @@ export type SettingsData = {
 export function SettingsTabs({ data }: { data: SettingsData }) {
   return (
     <Tabs defaultValue="workspace">
-      <TabsList variant="line" className="w-full justify-start gap-2">
+      <TabsList
+        variant="line"
+        className="w-full max-w-full justify-start gap-2 overflow-x-auto flex-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         <TabsTrigger value="workspace">Workspace</TabsTrigger>
         <TabsTrigger value="retention">Retention</TabsTrigger>
         <TabsTrigger value="security">Security</TabsTrigger>
@@ -77,7 +80,11 @@ export function SettingsTabs({ data }: { data: SettingsData }) {
         />
       </TabsContent>
       <TabsContent value="security" className="mt-6">
-        <SecuritySection security={data.security} recentEvents={data.recentEvents} />
+        <SecuritySection
+          security={data.security}
+          recentEvents={data.recentEvents}
+          members={data.members}
+        />
       </TabsContent>
       <TabsContent value="notifications" className="mt-6">
         <NotificationsSection org={data.org} />

@@ -9,30 +9,61 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
+import type { ClerkOrgMember } from "@/lib/clerk-backend";
 import type { SettingsData } from "../settings-tabs";
 
 type SecurityData = SettingsData["security"];
 
-function formatRelative(iso: string): string {
+// Map raw audit eventType strings to plain-English labels so we never show
+// "document.uploaded" or a Clerk UUID in the activity feed.
+const EVENT_LABELS: Record<string, string> = {
+  "document.uploaded": "Document uploaded",
+  "settings.workspace_updated": "Workspace settings updated",
+  "settings.retention_updated": "Retention settings updated",
+  "settings.notifications_updated": "Notification settings updated",
+  "settings.workspace_data_deleted": "Workspace data deleted",
+  reviewer_acknowledgment: "Report acknowledged",
+};
+
+function labelForEvent(eventType: string): string {
+  return EVENT_LABELS[eventType] ?? eventType;
+}
+
+// Absolute timestamp (Intl.RelativeTimeFormat would be nicer but is a separate
+// behavior change — rename keeps the contract honest rather than misnamed).
+function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString();
+}
+
+// Resolve a Clerk user id to a display name when possible; return null to omit the
+// "by" line rather than leak a UUID.
+function resolveActor(
+  actorId: string | null,
+  members: ClerkOrgMember[]
+): string | null {
+  if (!actorId) return null;
+  const m = members.find((mem) => mem.id === actorId);
+  if (!m) return null;
+  const name = [m.firstName, m.lastName].filter(Boolean).join(" ");
+  return name || m.email || null;
 }
 
 export function SecuritySection({
   security,
   recentEvents,
+  members,
 }: {
   security: SecurityData;
   recentEvents: SettingsData["recentEvents"];
+  members: ClerkOrgMember[];
 }) {
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Two-factor authentication</CardTitle>
-          <CardDescription>
-            Manage 2FA in your Clerk user profile.
-          </CardDescription>
+          <CardDescription>Manage 2FA in your Clerk user profile.</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -64,24 +95,29 @@ export function SecuritySection({
             <p className="text-sm text-muted-foreground">No recent activity.</p>
           ) : (
             <div className="flex flex-col divide-y divide-border">
-              {recentEvents.map((e) => (
-                <div
-                  key={e.id}
-                  className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{e.eventType}</span>
-                    {e.actorId && (
-                      <span className="text-xs text-muted-foreground">
-                        by {e.actorId}
+              {recentEvents.map((e) => {
+                const actor = resolveActor(e.actorId, members);
+                return (
+                  <div
+                    key={e.id}
+                    className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {labelForEvent(e.eventType)}
                       </span>
-                    )}
+                      {actor && (
+                        <span className="text-xs text-muted-foreground">
+                          by {actor}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatTimestamp(e.createdAt)}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelative(e.createdAt)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -106,7 +142,11 @@ export function SecuritySection({
                   key={s.id}
                   className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
                 >
-                  <span className="text-sm font-medium">{s.id}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {s.device ?? "Session"}
+                    </span>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {s.lastActiveAt
                       ? new Date(s.lastActiveAt).toLocaleString()

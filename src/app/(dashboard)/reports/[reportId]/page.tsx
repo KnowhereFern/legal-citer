@@ -15,7 +15,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -30,15 +29,31 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
-import { riskBadgeClass, resultBadgeClass } from "@/lib/status-colors";
-import { Download, FileWarning } from "lucide-react";
+import {
+  RiskBadge,
+  ResultBadge,
+} from "@/components/status-badge";
+import { FINAL_STATUS } from "@/lib/constants";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  FileWarning,
+  Info,
+  XCircle,
+  type LucideProps,
+} from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import { FILING_TYPES } from "@/lib/constants";
 import { ReportControls } from "./report-controls";
 import { CopyBlockButton } from "./copy-block-button";
 import { FilingDetailsForm } from "./filing-details-form";
 import { Suspense } from "react";
 import { BRAND, publicVerificationUrl } from "@/lib/brand";
+
+type Icon = ComponentType<SVGProps<SVGSVGElement> & LucideProps>;
 
 export default async function ReportDetailPage({
   params,
@@ -152,7 +167,7 @@ export default async function ReportDetailPage({
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
         <PageHeader
-          title="Public Exhibit Preview"
+          title="Public exhibit preview"
           description="This is what gets attached to the filing — bare and brand-forward."
         >
           <Button variant="outline" render={<a href={pdfHref} />}>
@@ -161,7 +176,7 @@ export default async function ReportDetailPage({
           </Button>
         </PageHeader>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<Skeleton className="h-9 w-full" />}>
           <ReportControls defaultJurisdiction={run.document.jurisdiction ?? undefined} />
         </Suspense>
 
@@ -214,9 +229,7 @@ export default async function ReportDetailPage({
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <span className="font-bold">•</span>
                   <span className="flex-1">{item.label}</span>
-                  {item.status === "not_enabled" && (
-                    <span className="text-xs italic text-muted-foreground">[if run — not run]</span>
-                  )}
+                  {item.status === "not_enabled" && <NotEnabledTag />}
                 </li>
               ))}
             </ul>
@@ -272,17 +285,25 @@ export default async function ReportDetailPage({
   // ---------------------------------------------------------------------
   const data = buildReportData({ ...base, filingBlock });
 
+  const verified = data.summary.authoritiesVerified;
+  const extracted = data.summary.authoritiesExtracted;
+  const exceptions = data.summary.exceptionsRemaining;
+
+  // Icon for the final-status alert (DESIGN.md status table).
+  const finalStatusIcon: Icon =
+    data.summary.finalStatus === FINAL_STATUS.CLEARED
+      ? CheckCircle2
+      : data.summary.finalStatus === FINAL_STATUS.CLEARED_WITH_EXCEPTIONS
+        ? AlertTriangle
+        : XCircle;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Pre-Filing Verification Report"
+        title="Your citation report"
         description={run.document.filename}
       >
-        {report.riskBand && (
-          <Badge variant="outline" className={riskBadgeClass(report.riskBand)}>
-            {report.riskBand}
-          </Badge>
-        )}
+        {report.riskBand && <RiskBadge value={report.riskBand} />}
         <Button variant="outline" render={<a href={pdfHref} />}>
           <Download data-icon="inline-start" />
           Download PDF
@@ -292,7 +313,7 @@ export default async function ReportDetailPage({
       {(report.status === "pending" || report.status === "error") && (
         <Alert variant={report.status === "error" ? "destructive" : "default"}>
           <AlertTitle>
-            {report.status === "error" ? "Report Error" : "Report Incomplete"}
+            {report.status === "error" ? "Report error" : "Report incomplete"}
           </AlertTitle>
           <AlertDescription>
             {report.status === "error"
@@ -302,23 +323,35 @@ export default async function ReportDetailPage({
         </Alert>
       )}
 
-      <Suspense fallback={null}>
+      {/* Hero summary — the page's reason to exist. Lead with a plain-English
+          one-liner (PRODUCT.md #4) so a filer knows immediately whether their
+          document is ready. */}
+      <Card>
+        <CardContent className="py-6">
+          {exceptions === 0 ? (
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 size-6 text-success" />
+              <p className="text-lg font-medium">
+                Every citation checks out. Ready to file.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-lg font-medium">
+                {verified} of {extracted} citations check out.{" "}
+                <span className="inline-flex items-center gap-1 text-destructive">
+                  <AlertTriangle className="size-5" />
+                  {exceptions} {exceptions === 1 ? "needs" : "need"} your attention.
+                </span>
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Suspense fallback={<Skeleton className="h-9 w-full" />}>
         <ReportControls defaultJurisdiction={run.document.jurisdiction ?? undefined} />
       </Suspense>
-
-      <FilingDetailsForm
-        reportId={reportId}
-        initial={{
-          caseNumber: report.caseNumber ?? "",
-          filingTitle: report.filingTitle ?? docTitle,
-          aiToolsDisclosed: report.aiToolsDisclosed ?? aiTools,
-          attorneyName: report.attorneyName ?? "",
-          barNumber: report.barNumber ?? "",
-          lawFirm: report.lawFirm ?? "",
-          party: report.party ?? "",
-          verificationVendor: report.verificationVendor ?? "",
-        }}
-      />
 
       {/* Identification block */}
       <Card>
@@ -353,7 +386,7 @@ export default async function ReportDetailPage({
       {/* Verification Scope */}
       <Card>
         <CardHeader>
-          <CardTitle>Verification Scope</CardTitle>
+          <CardTitle>Verification scope</CardTitle>
           <CardDescription>
             The following checks were run on the identified version of the filing.
           </CardDescription>
@@ -364,9 +397,7 @@ export default async function ReportDetailPage({
               <li key={i} className="flex items-start gap-3 text-sm">
                 <span className="font-semibold tabular-nums">{i + 1}.</span>
                 <span className="flex-1">{item.label}</span>
-                {item.status === "not_enabled" && (
-                  <span className="text-xs italic text-muted-foreground">[if enabled — not enabled]</span>
-                )}
+                {item.status === "not_enabled" && <NotEnabledTag />}
               </li>
             ))}
           </ol>
@@ -376,13 +407,13 @@ export default async function ReportDetailPage({
       {/* Summary of Results */}
       <Card>
         <CardHeader>
-          <CardTitle>Summary of Results</CardTitle>
+          <CardTitle>Summary of results</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-            <CountRow label="Authorities extracted" value={data.summary.authoritiesExtracted} />
-            <CountRow label="Authorities verified" value={data.summary.authoritiesVerified} tone="success" />
-            <CountRow label="Authorities unresolved at first pass" value={data.summary.authoritiesUnresolved} tone="warning" />
+            <CountRow label="Citations found" value={data.summary.authoritiesExtracted} />
+            <CountRow label="Citations that check out" value={data.summary.authoritiesVerified} tone="success" />
+            <CountRow label="Citations we couldn't verify" value={data.summary.authoritiesUnresolved} tone="warning" />
             <CountRow label="Quotations checked" value={data.summary.quotationsChecked} />
             <CountRow label="Quotations matched" value={data.summary.quotationsMatched} tone="success" />
             <CountRow
@@ -390,13 +421,17 @@ export default async function ReportDetailPage({
               value={data.summary.recordCitationsChecked === null ? "N/A — not enabled" : data.summary.recordCitationsChecked}
             />
             <CountRow
-              label="Record citations unresolved"
+              label="Record citations we couldn't verify"
               value={data.summary.recordCitationsUnresolved === null ? "N/A — not enabled" : data.summary.recordCitationsUnresolved}
               tone={data.summary.recordCitationsUnresolved ? "warning" : undefined}
             />
-            <CountRow label="Exceptions remaining at final review" value={data.summary.exceptionsRemaining} tone={data.summary.exceptionsRemaining ? "destructive" : undefined} />
+            <CountRow label="Citations that still need your attention" value={data.summary.exceptionsRemaining} tone={data.summary.exceptionsRemaining ? "destructive" : undefined} />
           </div>
           <Alert className="mt-4">
+            {(() => {
+              const Icon = finalStatusIcon;
+              return <Icon className="size-4" />;
+            })()}
             <AlertTitle>Final workflow status</AlertTitle>
             <AlertDescription className="font-semibold">
               {data.summary.finalStatus}
@@ -405,12 +440,28 @@ export default async function ReportDetailPage({
         </CardContent>
       </Card>
 
+      {/* Filing details form — moved below the summary so the report leads
+          with outcomes, not an intake form. */}
+      <FilingDetailsForm
+        reportId={reportId}
+        initial={{
+          caseNumber: report.caseNumber ?? "",
+          filingTitle: report.filingTitle ?? docTitle,
+          aiToolsDisclosed: report.aiToolsDisclosed ?? aiTools,
+          attorneyName: report.attorneyName ?? "",
+          barNumber: report.barNumber ?? "",
+          lawFirm: report.lawFirm ?? "",
+          party: report.party ?? "",
+          verificationVendor: report.verificationVendor ?? "",
+        }}
+      />
+
       {/* Filing Block */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <CardTitle>Filing Block</CardTitle>
+              <CardTitle>Filing block</CardTitle>
               <CardDescription>
                 Paste this certification text into your filing. Source: {filingBlock.source}
               </CardDescription>
@@ -422,7 +473,7 @@ export default async function ReportDetailPage({
           {filingBlock.superseded && (
             <Alert>
               <FileWarning className="size-4 text-warning" />
-              <AlertTitle>Superseded Order</AlertTitle>
+              <AlertTitle>Superseded order</AlertTitle>
               <AlertDescription>
                 This order was superseded by the statewide Rule 2.515(d)(2) on June 15, 2026. It is included as an optional enhanced disclosure template.
               </AlertDescription>
@@ -440,7 +491,7 @@ export default async function ReportDetailPage({
       {/* Attorney Acknowledgment */}
       <Card>
         <CardHeader>
-          <CardTitle>Attorney Acknowledgment</CardTitle>
+          <CardTitle>Attorney acknowledgment</CardTitle>
           <CardDescription>For counsel review. This section does not constitute legal advice.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -464,10 +515,10 @@ export default async function ReportDetailPage({
         </CardContent>
       </Card>
 
-      {/* Exceptions Remaining at Filing */}
+      {/* Exceptions remaining at filing */}
       <Card>
         <CardHeader>
-          <CardTitle>Exceptions Remaining at Filing ({data.exceptions.length})</CardTitle>
+          <CardTitle>Citations that still need your attention ({data.exceptions.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {data.exceptions.length === 0 ? (
@@ -475,22 +526,25 @@ export default async function ReportDetailPage({
           ) : (
             <div className="flex flex-col gap-3">
               {data.exceptions.map((exc, idx) => (
-                <div key={idx} className="flex items-start gap-3 rounded-lg border border-border p-3">
-                  <span className="mt-0.5 font-mono text-xs text-muted-foreground">{idx + 1}.</span>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={resultBadgeClass(exc.result)}>
-                        {exc.result}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{exc.checkType}</span>
-                    </div>
-                    {exc.citationText && (
-                      <p className="font-mono text-sm">{exc.citationText}</p>
-                    )}
-                    {exc.detail && (
-                      <p className="text-xs text-muted-foreground">{exc.detail}</p>
-                    )}
+                <div
+                  key={idx}
+                  className="flex flex-col gap-2 rounded-lg border border-border p-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <ResultBadge value={exc.result} />
+                    <span className="text-xs text-muted-foreground">{exc.checkType}</span>
                   </div>
+                  {exc.citationText && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground">You wrote:</p>
+                      <p className="border-l-2 border-border pl-3 font-mono text-sm">
+                        {exc.citationText}
+                      </p>
+                    </div>
+                  )}
+                  {exc.detail && (
+                    <p className="text-xs text-muted-foreground">{exc.detail}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -523,17 +577,63 @@ export default async function ReportDetailPage({
         </CardContent>
       </Card>
 
-      {/* Appendix A — full view only */}
+      {/* Appendix A — full view only. Mobile reflows to stacked cards so the
+          8-column table never forces horizontal scroll (PRODUCT.md a11y:
+          "no horizontal scroll on any report view"). */}
       {data.appendix && data.appendix.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Appendix A — Itemized Findings ({data.appendix.length})</CardTitle>
+            <CardTitle>Every citation, listed ({data.appendix.length})</CardTitle>
             <CardDescription>
               Per-finding detail. Not filed with the court unless required in a dispute.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            {/* Mobile: one citation per card. */}
+            <div className="flex flex-col gap-3 sm:hidden">
+              {data.appendix.map((row, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    {row.paragraph && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {row.paragraph}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">
+                      Reviewer: {row.reviewerDisposition}
+                    </span>
+                  </div>
+                  {row.citationAsWritten && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground">Citation as written:</p>
+                      <p className="max-w-prose break-words font-mono text-xs">
+                        {row.citationAsWritten}
+                      </p>
+                    </div>
+                  )}
+                  {row.canonicalAuthority && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground">Canonical authority resolved:</p>
+                      <p className="max-w-prose break-words text-xs">{row.canonicalAuthority}</p>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    {row.sourceUsed && <span>Source: {row.sourceUsed}</span>}
+                    {row.quoteMatch && <span>Quote: {row.quoteMatch}</span>}
+                    {row.metadataMatch && <span>Metadata: {row.metadataMatch}</span>}
+                  </div>
+                  <p className="font-mono text-xs text-muted-foreground">{row.timestamp}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* sm+: table. Reviewer + Timestamp drop on small screens via
+                hidden md:table-cell so the table stays readable down to sm. */}
+            <div className="hidden overflow-x-auto sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -543,8 +643,8 @@ export default async function ReportDetailPage({
                     <TableHead>Source</TableHead>
                     <TableHead>Quote</TableHead>
                     <TableHead>Metadata</TableHead>
-                    <TableHead>Reviewer</TableHead>
-                    <TableHead>Timestamp</TableHead>
+                    <TableHead className="hidden md:table-cell">Reviewer</TableHead>
+                    <TableHead className="hidden md:table-cell">Timestamp</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -556,8 +656,8 @@ export default async function ReportDetailPage({
                       <TableCell className="text-xs">{row.sourceUsed ?? "—"}</TableCell>
                       <TableCell className="text-xs">{row.quoteMatch ?? "—"}</TableCell>
                       <TableCell className="text-xs">{row.metadataMatch ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{row.reviewerDisposition}</TableCell>
-                      <TableCell className="font-mono text-xs">{row.timestamp}</TableCell>
+                      <TableCell className="hidden text-xs md:table-cell">{row.reviewerDisposition}</TableCell>
+                      <TableCell className="hidden font-mono text-xs md:table-cell">{row.timestamp}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -584,6 +684,21 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
   );
 }
 
+/**
+ * Inline "Not enabled" tag — pairs the muted tone with an Info icon so the
+ * status is never color-only (DESIGN.md: every status gets icon + label).
+ * Replaces the dev placeholder copy "[if run — not run]" / "[if enabled —
+ * not enabled]" with a consistent plain-English label.
+ */
+function NotEnabledTag() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Info className="size-3.5" />
+      Not enabled
+    </span>
+  );
+}
+
 function CountRow({
   label,
   value,
@@ -593,7 +708,11 @@ function CountRow({
   value: number | string;
   tone?: "success" | "warning" | "destructive";
 }) {
-  const toneClass =
+  // Prose values (e.g. "N/A — not enabled") are not counts: drop the big
+  // tabular number treatment and render them as muted secondary text.
+  const isProse = typeof value === "string";
+
+  const toneText =
     tone === "success"
       ? "text-success"
       : tone === "warning"
@@ -601,10 +720,33 @@ function CountRow({
         : tone === "destructive"
           ? "text-destructive"
           : "";
+
+  const toneIcon =
+    tone === "success"
+      ? CheckCircle2
+      : tone === "warning"
+        ? AlertTriangle
+        : tone === "destructive"
+          ? XCircle
+          : null;
+
+  if (isProse) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-sm text-muted-foreground">{value}</span>
+      </div>
+    );
+  }
+
+  const Icon = toneIcon;
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-lg font-semibold tabular-nums ${toneClass}`}>{value}</span>
+      <span className={`inline-flex items-center gap-1.5 text-lg font-semibold tabular-nums ${toneText}`}>
+        {Icon && <Icon className="size-4" />}
+        {value}
+      </span>
     </div>
   );
 }

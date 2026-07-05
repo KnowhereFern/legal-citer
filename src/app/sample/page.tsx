@@ -8,7 +8,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,8 +23,14 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { PageHeader } from "@/components/page-header";
-import { riskBadgeClass, resultBadgeClass } from "@/lib/status-colors";
-import { ArrowLeft, Info } from "lucide-react";
+import { RiskBadge, ResultBadge } from "@/components/status-badge";
+import {
+  ArrowLeft,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +51,7 @@ export default function SampleReportPage() {
           <ArrowLeft className="size-4" />
           Back to home
         </Link>
-        <Button size="sm" render={<Link href="/sign-up" />}>
+        <Button size="default" nativeButton={false} render={<Link href="/sign-up" />}>
           Try it free
         </Button>
       </header>
@@ -65,11 +70,7 @@ export default function SampleReportPage() {
           title="AI Use & Verification Summary"
           description={data.filename}
         >
-          {data.riskBand && (
-            <Badge variant="outline" className={riskBadgeClass(data.riskBand)}>
-              {data.riskBand}
-            </Badge>
-          )}
+          {data.riskBand && <RiskBadge value={data.riskBand} />}
         </PageHeader>
 
         {/* Identification block */}
@@ -116,11 +117,17 @@ export default function SampleReportPage() {
                   <span className="font-semibold tabular-nums">{i + 1}.</span>
                   <span className="flex-1">{item.label}</span>
                   {item.status === "not_enabled" && (
-                    <span className="text-xs italic text-muted-foreground">[if enabled — not enabled]</span>
+                    <span className="text-xs italic text-muted-foreground">(not run)</span>
                   )}
                 </li>
               ))}
             </ol>
+            {/* Source attribution — PRODUCT.md says citations verify against
+                real case law; naming the sources is a high-value trust signal
+                for a viewer who has never used the product. */}
+            <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+              Citations checked against CourtListener and gov.uscourts sources.
+            </p>
           </CardContent>
         </Card>
 
@@ -128,6 +135,24 @@ export default function SampleReportPage() {
         <Card>
           <CardHeader>
             <CardTitle>Summary of Results</CardTitle>
+            {/* Status legend — color alone is a deuteranopia hazard. One
+                compact line keys the tones used in counts + badges below. */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <CheckCircle2 className="size-3.5 text-success" />
+                Verified
+              </span>
+              <span aria-hidden className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1">
+                <AlertTriangle className="size-3.5 text-warning" />
+                Needs attention
+              </span>
+              <span aria-hidden className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1">
+                <XCircle className="size-3.5 text-destructive" />
+                Doesn&apos;t check out
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
@@ -220,9 +245,7 @@ export default function SampleReportPage() {
                     <span className="mt-0.5 font-mono text-xs text-muted-foreground">{idx + 1}.</span>
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={resultBadgeClass(exc.result)}>
-                          {exc.result}
-                        </Badge>
+                        <ResultBadge value={exc.result} />
                         <span className="text-xs text-muted-foreground">{exc.checkType}</span>
                       </div>
                       {exc.citationText && (
@@ -274,7 +297,36 @@ export default function SampleReportPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Stacked cards on phones — the 8-column table forces horizontal
+                  scroll on a 360px viewport, which PRODUCT.md forbids for any
+                  report view. Drop Reviewer + Timestamp (low value on mobile)
+                  and render one finding per card; reserve the table for sm: up. */}
+              <div className="flex flex-col gap-3 sm:hidden">
+                {data.appendix.map((row, i) => (
+                  <div key={i} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      {row.paragraph && <span className="font-mono">{row.paragraph}</span>}
+                      {row.sourceUsed && <span>{row.sourceUsed}</span>}
+                      <span className="font-mono">{row.timestamp}</span>
+                    </div>
+                    {row.citationAsWritten && (
+                      <p className="mt-2 break-words font-mono text-sm">{row.citationAsWritten}</p>
+                    )}
+                    {row.canonicalAuthority && (
+                      <p className="mt-1 max-w-prose text-sm text-muted-foreground">{row.canonicalAuthority}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {row.quoteMatch && (
+                        <span>Quote: <span className="text-foreground">{row.quoteMatch}</span></span>
+                      )}
+                      {row.metadataMatch && (
+                        <span>Metadata: <span className="text-foreground">{row.metadataMatch}</span></span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -318,7 +370,7 @@ export default function SampleReportPage() {
               Upload a DOCX or PDF. {BRAND.company} checks citations, quotes, and AI-use disclosure,
               then gives you a report like the one above.
             </p>
-            <Button size="lg" render={<Link href="/sign-up" />}>
+            <Button size="lg" nativeButton={false} render={<Link href="/sign-up" />}>
               Get Started Free
             </Button>
             <p className="text-xs text-muted-foreground">
