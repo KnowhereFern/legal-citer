@@ -4,16 +4,7 @@ import { startRunSchema, RUN_STATUS } from "@/lib/constants";
 import { resolveWorkspace } from "@/lib/workspace";
 import { DEFAULT_PIPELINE_CONFIG } from "@/lib/types";
 import { enqueueVerificationJob } from "@/worker/queue";
-
-const PIPELINE_STAGES = [
-  "hash",
-  "extract",
-  "citations",
-  "quotes",
-  "checks",
-  "scoring",
-  "report",
-];
+import { PIPELINE_STAGES } from "@/lib/pipeline-stages";
 
 export async function POST(request: NextRequest) {
   const workspace = await resolveWorkspace();

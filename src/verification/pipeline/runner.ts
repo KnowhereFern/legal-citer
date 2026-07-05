@@ -5,6 +5,7 @@ import { tmpdir } from "os";
 
 import { prisma } from "@/lib/db";
 import { RUN_STATUS, FINDING_RESULT } from "@/lib/constants";
+import { PIPELINE_STAGES } from "@/lib/pipeline-stages";
 import type { CheckResult, PipelineConfig } from "@/lib/types";
 
 import { extractDocument } from "../extractor";
@@ -94,10 +95,10 @@ export async function runVerification(params: {
       .update(documentBuffer)
       .digest("hex");
 
-    await updateStage(runId, "hash_document", "running");
-    await updateStage(runId, "hash_document", "completed", { documentHash });
+    await updateStage(runId, PIPELINE_STAGES[0], "running");
+    await updateStage(runId, PIPELINE_STAGES[0], "completed", { documentHash });
 
-    await updateStage(runId, "extract_text", "running");
+    await updateStage(runId, PIPELINE_STAGES[1], "running");
     const doc = await extractDocument(documentBuffer, contentType);
 
     if (doc.pageCount > config.pageCountLimit) {
@@ -105,20 +106,20 @@ export async function runVerification(params: {
       return;
     }
 
-    await updateStage(runId, "extract_text", "completed", {
+    await updateStage(runId, PIPELINE_STAGES[1], "completed", {
       pageCount: doc.pageCount,
       paragraphCount: doc.paragraphs.length,
       citationCount: doc.citations.length,
       quotedSpanCount: doc.quotedSpans.length,
     });
 
-    await updateStage(runId, "extract_citations", "running");
-    await updateStage(runId, "extract_citations", "completed", {
+    await updateStage(runId, PIPELINE_STAGES[2], "running");
+    await updateStage(runId, PIPELINE_STAGES[2], "completed", {
       citations: doc.citations.length,
       quotedSpans: doc.quotedSpans.length,
     });
 
-    await updateStage(runId, "run_checks", "running");
+    await updateStage(runId, PIPELINE_STAGES[3], "running");
 
     const resolver = createResolver();
     const checks = getAllChecks();
@@ -151,15 +152,15 @@ export async function runVerification(params: {
       allFindings.push(...buildRecordCitationFindings(doc.recordCitations ?? []));
     }
 
-    await updateStage(runId, "run_checks", "completed", {
+    await updateStage(runId, PIPELINE_STAGES[3], "completed", {
       totalFindings: allFindings.length,
     });
 
-    await updateStage(runId, "compute_score", "running");
+    await updateStage(runId, PIPELINE_STAGES[4], "running");
     const score = computeScore(allFindings);
-    await updateStage(runId, "compute_score", "completed", { ...score });
+    await updateStage(runId, PIPELINE_STAGES[4], "completed", { ...score });
 
-    await updateStage(runId, "persist_results", "running");
+    await updateStage(runId, PIPELINE_STAGES[5], "running");
 
     await prisma.$transaction(
       allFindings.map((finding) =>
@@ -207,7 +208,7 @@ export async function runVerification(params: {
       },
     });
 
-    await updateStage(runId, "persist_results", "completed");
+    await updateStage(runId, PIPELINE_STAGES[5], "completed");
 
     await createManifest(runId, documentHash);
     const manifestRecord = await prisma.verificationManifest.findUniqueOrThrow({
