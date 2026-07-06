@@ -22,6 +22,7 @@ scripts/*
 !scripts/migrate-deploy.mjs
 !scripts/seed-e2e.mjs
 !scripts/cleanup-e2e.mjs
+!scripts/backfill-pipeline-stages.mjs
 run_story_builder
 Fern_Project_Proposals.xlsx
 

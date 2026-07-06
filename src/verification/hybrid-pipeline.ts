@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { FINDING_RESULT } from "@/lib/constants";
+import { HYBRID_PIPELINE_STAGES } from "@/lib/pipeline-stages";
 import type { CheckResult, PipelineConfig } from "@/lib/types";
 
 import { runVerification } from "./pipeline/runner";
@@ -72,14 +73,14 @@ export async function runHybridVerification(params: {
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    await upsertStage(runId, "support_analysis_eligibility", "completed", {
+    await upsertStage(runId, HYBRID_PIPELINE_STAGES[0], "completed", {
       skipped: true,
       reason: "OPENROUTER_API_KEY not configured",
     });
     return;
   }
 
-  await upsertStage(runId, "support_analysis_eligibility", "running");
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[0], "running");
 
   const findings = await prisma.finding.findMany({ where: { runId } });
   const caseLawCitations = new Set<string>();
@@ -90,7 +91,7 @@ export async function runHybridVerification(params: {
     }
   }
 
-  await upsertStage(runId, "support_analysis_eligibility", "completed", {
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[0], "completed", {
     eligibleCitations: caseLawCitations.size,
   });
 
@@ -98,7 +99,7 @@ export async function runHybridVerification(params: {
     return;
   }
 
-  await upsertStage(runId, "llm_support_analysis", "running");
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[1], "running");
 
   const analyst = new SupportAnalyst(apiKey);
   const resolvedSources = new Map<string, string>();
@@ -163,11 +164,11 @@ export async function runHybridVerification(params: {
     )
   );
 
-  await upsertStage(runId, "llm_support_analysis", "completed", {
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[1], "completed", {
     analyzedCitations: supportFindings.length,
   });
 
-  await upsertStage(runId, "hybrid_recompute_score", "running");
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[2], "running");
 
   const allFindings = await prisma.finding.findMany({ where: { runId } });
   const checkResults: CheckResult[] = allFindings.map((f) => ({
@@ -188,7 +189,7 @@ export async function runHybridVerification(params: {
 
   const score = computeScore(checkResults);
 
-  await upsertStage(runId, "hybrid_recompute_score", "completed", { ...score });
+  await upsertStage(runId, HYBRID_PIPELINE_STAGES[2], "completed", { ...score });
 
   const report = await prisma.report.findFirst({ where: { runId } });
   if (report) {

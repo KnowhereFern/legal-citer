@@ -29,16 +29,21 @@ export const citationMetadataCheck: VerificationCheck = {
     };
 
     if (resolverResult.status !== "resolved" || !resolverResult.metadata) {
+      // When the authority itself couldn't be resolved, there is no metadata
+      // to compare against. This is a prerequisite failure, not a finding
+      // against the citation — emit NOT_APPLICABLE so unresolvedCount (a risk
+      // driver in computeScore) isn't triple-inflated. The citation_existence
+      // check is the single source of truth for "authority unresolved."
       return {
         checkType: "citation_metadata",
-        result: FINDING_RESULT.UNRESOLVED,
+        result: FINDING_RESULT.NOT_APPLICABLE,
         citationText: citation.text,
         sourceQueried: resolverResult.sourceId,
         isAiAssisted: false,
         detail:
           resolverResult.status === "unresolved"
-            ? "Cannot validate metadata: citation unresolved"
-            : resolverResult.error ?? "Source failure during metadata lookup",
+            ? "Metadata check skipped: authority unresolved (see citation existence)"
+            : resolverResult.error ?? "Metadata check skipped: source failure during lookup",
         ...canonical,
       };
     }

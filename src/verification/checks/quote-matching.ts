@@ -36,16 +36,20 @@ export const quoteMatchingCheck: VerificationCheck = {
     const resolverResult = await resolver.resolve(citation);
 
     if (resolverResult.status !== "resolved" || !resolverResult.content) {
+      // Same rationale as citation_metadata: if the authority couldn't be
+      // resolved, there is no source text to match quotes against. Emit
+      // NOT_APPLICABLE, not UNRESOLVED, so a single missed resolution doesn't
+      // produce three risk-driving findings for the same citation.
       return {
         checkType: "quote_matching",
-        result: FINDING_RESULT.UNRESOLVED,
+        result: FINDING_RESULT.NOT_APPLICABLE,
         citationText: citation.text,
         sourceQueried: resolverResult.sourceId,
         isAiAssisted: false,
         detail:
           resolverResult.status === "unresolved"
-            ? "Cannot verify quotes: citation unresolved"
-            : resolverResult.error ?? "Source failure during quote matching",
+            ? "Quote check skipped: authority unresolved (see citation existence)"
+            : resolverResult.error ?? "Quote check skipped: source failure during lookup",
         paragraphIndex: citation.paragraphIndex,
         pageNumber: citation.page,
       };
