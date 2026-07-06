@@ -2,9 +2,9 @@ import type { Citation, ResolverResult } from "@/lib/types";
 import { CAPResolver } from "./cap";
 import { CompositeResolver } from "./composite";
 import { CourtListenerResolver } from "./courtlistener";
+import { GovInfoResolver } from "./govinfo";
 import { PacerAuthManager } from "./pacer-auth";
 import { PacerResolver } from "./pacer";
-import { StubResolver } from "./stub-resolver";
 
 export interface AuthorityResolver {
   resolve(citation: Citation): Promise<ResolverResult>;
@@ -13,17 +13,20 @@ export interface AuthorityResolver {
 export { CompositeResolver } from "./composite";
 export { CourtListenerResolver } from "./courtlistener";
 export { CAPResolver } from "./cap";
-export { StubResolver } from "./stub-resolver";
+export { GovInfoResolver } from "./govinfo";
 export { PacerAuthManager } from "./pacer-auth";
 export { PacerResolver } from "./pacer";
 
 export function createResolver(): AuthorityResolver {
   const resolvers: AuthorityResolver[] = [];
 
-  const apiKey = process.env.COURTLISTENER_API_KEY;
-  if (apiKey) {
-    resolvers.push(new CourtListenerResolver(apiKey));
-  }
+  // CourtListener is the primary case-law resolver. Its citation-lookup
+  // endpoint permits low-volume unauthenticated reads, so we always register
+  // it — sending the Authorization header only when a key is configured
+  // (higher rate limits). Previously CL was skipped entirely when no key was
+  // set, leaving case law with no resolver at all unless CAP/PACER covered it.
+  const courtlistenerApiKey = process.env.COURTLISTENER_API_KEY;
+  resolvers.push(new CourtListenerResolver(courtlistenerApiKey));
 
   const pacerUsername = process.env.PACER_USERNAME;
   const pacerPassword = process.env.PACER_PASSWORD;
@@ -37,8 +40,20 @@ export function createResolver(): AuthorityResolver {
     resolvers.push(new PacerResolver(authManager));
   }
 
+  // GovInfo resolves U.S.C. statutory citations. Without it, every statute
+  // (e.g. "42 U.S.C. § 1983") falls through to unresolved — CAP and CL are
+  // case-law focused, PACER is court documents. The resolver self-gates on
+  // classifyCitation === "statute", so it's safe to always include.
+  const govinfoApiKey = process.env.GOVINFO_API_KEY;
+  resolvers.push(new GovInfoResolver(govinfoApiKey));
+
   resolvers.push(new CAPResolver());
-  resolvers.push(new StubResolver());
+
+  // No StubResolver: it was a no-op that always returned "unresolved".
+  // CompositeResolver already returns { status: "unresolved" } on its own
+  // when no source resolves and there were no source failures, so the stub
+  // added nothing — it just made "unresolved" mean "we asked a stub" rather
+  // than the honest "no configured source could resolve it."
 
   return new CompositeResolver(resolvers);
 }
