@@ -128,52 +128,121 @@ export class GovInfoResolver implements AuthorityResolver {
 
   /**
    * Search GovInfo for the most recent USCODE granule matching the given
-   * title + section. Sorting by dateIssued DESC returns the current edition
-   * regardless of which year's package it lives in (USCODE-2024, USCODE-2026,
-   * etc.), which is why this replaced the hardcoded-edition direct fetch.
+   * title + section.
+   *
+   * The query strategy is dictated by what GovInfo's Lucene search actually
+   * supports (verified against the live API):
+   *   - `packageId:USCODE-*title{N}*` → returns 0 results. Wildcards on
+   *     packageId are not honored.
+   *   - `granuleId:*sect{N}*`        → HTTP 500. Wildcards on granuleId
+   *     crash the search service.
+   *   - `granuleId:USCODE-...-sec{N}` (exact) → works, but requires knowing
+   *     the full chapter/subchapter path, which we don't have at lookup time.
+   *
+   * What DOES work: `collection:(USCODE) AND title:{N} AND "sect {section}"`
+   * — the title-number term narrows ranking, the quoted phrase "sect {N}"
+   * matches the section header in the granule body text, and we validate
+   * the returned granuleId with a regex to guarantee the result is actually
+   * the requested section (not a full-text false positive).
+   *
+   * The API also intermittently returns HTTP 500 on queries that succeed on
+   * retry (observed repeatedly during testing), so we retry once after a
+   * short delay before giving up.
    */
   private async searchSection(
     title: string,
     section: string,
   ): Promise<GovInfoSearchHit | null> {
     const body = {
-      query: `collection:(USCODE) AND packageId:USCODE-*title${title}* AND granuleId:*sect${section}*`,
+      query: `collection:(USCODE) AND title:${this.escapeLucene(title)} AND "sect ${this.escapeLucene(section)}"`,
       offsetMark: "*",
-      pageSize: "1",
+      // Take a few candidates: the phrase match may rank a cross-reference
+      // above the real section, so we validate granuleId and take the first
+      // whose path actually ends in -sec{N}.
+      pageSize: "5",
       sorts: [{ field: "dateIssued", sortOrder: "DESC" }],
     };
 
+    const data = await this.postSearchWithRetry(body);
+
+    const sectionPattern = new RegExp(`-sec${section}(-|$)`);
+    const valid = (data.results ?? []).find(
+      (r) => typeof r.granuleId === "string" && sectionPattern.test(r.granuleId),
+    );
+
+    return valid ?? null;
+  }
+
+  /**
+   * Escape characters that have special meaning in GovInfo's Lucene query
+   * parser so a malformed title/section can't break or inject into the query.
+   */
+  private escapeLucene(value: string): string {
+    return value.replace(/([+\-!(){}\[\]^"~*?:\\/])/g, "\\$1");
+  }
+
+  private async postSearchWithRetry(
+    body: Record<string, unknown>,
+  ): Promise<GovInfoSearchResponse> {
     const url = `${SEARCH_URL}?api_key=${encodeURIComponent(this.apiKey)}`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      // 429 / OVER_RATE_LIMIT surfaces as a JSON body even with HTTP 200 in
-      // some api.data.gov paths, so also parse the error code below.
-      if (response.status === 429 || response.status === 401 || response.status === 403) {
-        throw new GovInfoUnreachableError(
-          `GovInfo search unreachable (HTTP ${response.status}). Set GOVINFO_API_KEY for higher limits.`,
-        );
+    // Two attempts: GovInfo's search service intermittently 500s on queries
+    // that succeed on immediate retry (observed repeatedly in testing).
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          // Rate-limit / auth → unreachable (maps to unresolved, not failure).
+          if (
+            response.status === 429 ||
+            response.status === 401 ||
+            response.status === 403
+          ) {
+            throw new GovInfoUnreachableError(
+              `GovInfo search unreachable (HTTP ${response.status}). Set GOVINFO_API_KEY for higher limits.`,
+            );
+          }
+          // 500 / 502 / 503 / 504 → retry on first attempt, give up on second.
+          if (response.status >= 500 && attempt === 0) {
+            lastError = new Error(
+              `GovInfo search HTTP ${response.status} (retrying)`,
+            );
+            await new Promise((r) => setTimeout(r, 1000));
+            continue;
+          }
+          throw new Error(
+            `GovInfo search failed: HTTP ${response.status} ${response.statusText}`,
+          );
+        }
+
+        const data = (await response.json()) as GovInfoSearchResponse;
+
+        // api.data.gov sometimes returns 200 + an error body for rate limits.
+        if (data.error) {
+          throw new GovInfoUnreachableError(
+            `GovInfo ${data.error.code ?? "error"}: ${data.error.message ?? "rate limited"}`,
+          );
+        }
+
+        return data;
+      } catch (error) {
+        // GovInfoUnreachableError is not retryable — propagate immediately.
+        if (error instanceof GovInfoUnreachableError) throw error;
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
       }
-      throw new Error(
-        `GovInfo search failed: HTTP ${response.status} ${response.statusText}`,
-      );
     }
 
-    const data = (await response.json()) as GovInfoSearchResponse;
-
-    // api.data.gov sometimes returns 200 + an error body for rate limits.
-    if (data.error) {
-      throw new GovInfoUnreachableError(
-        `GovInfo ${data.error.code ?? "error"}: ${data.error.message ?? "rate limited"}`,
-      );
-    }
-
-    const results = data.results ?? [];
-    return results.length > 0 ? results[0] : null;
+    throw lastError ?? new Error("GovInfo search failed after retry");
   }
 
   /**
