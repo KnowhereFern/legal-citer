@@ -74,58 +74,77 @@ async function fetchWithRetry(
 }
 
 export class CourtListenerResolver implements AuthorityResolver {
-  private apiKey: string;
+  private apiKey?: string;
 
-  constructor(apiKey: string) {
+  // apiKey is optional: CourtListener's citation-lookup endpoint permits
+  // low-volume unauthenticated reads. When a key is configured it is sent
+  // for higher rate limits; when absent we still try anonymously rather
+  // than skipping the source entirely (which would leave case law with no
+  // resolver at all if no other source is configured).
+  constructor(apiKey?: string) {
     this.apiKey = apiKey;
   }
 
   private get headers(): Record<string, string> {
-    return {
-      Authorization: `Token ${this.apiKey}`,
+    const h: Record<string, string> = {
       "Content-Type": "application/json",
     };
+    if (this.apiKey) {
+      h.Authorization = `Token ${this.apiKey}`;
+    }
+    return h;
   }
 
   async resolve(citation: Citation): Promise<ResolverResult> {
     try {
       const lookupResult = await this.lookupCitation(citation.text);
 
-      const firstHit = lookupResult[0];
-      if (
-        !firstHit?.clusters ||
-        firstHit.clusters.length === 0
-      ) {
-        return { status: "unresolved" };
+      // The citation-lookup endpoint returns one entry per submitted
+      // citation, each carrying a `clusters` array (cases that match) and
+      // each cluster carrying `sub_opinions` (the actual opinion URLs).
+      // Historically this code only inspected lookupResult[0].clusters[0]
+      // and sub_opinions[0], so a citation whose first cluster had no
+      // opinions — but whose second cluster did — was wrongly marked
+      // unresolved. Iterate all of them and take the first opinion we can
+      // actually fetch.
+      for (const hit of lookupResult) {
+        for (const cluster of hit.clusters ?? []) {
+          const subOpinions = cluster.sub_opinions ?? [];
+          for (const opinionUrl of subOpinions) {
+            if (!opinionUrl) continue;
+            try {
+              const opinion = await this.fetchOpinion(opinionUrl);
+              const content = opinion.plain_text || opinion.html || "";
+              if (!content) continue;
+
+              const caseName =
+                (cluster.case_name as string) ?? "Unknown Case";
+              const citationText =
+                cluster.citations?.[0]?.cite ?? citation.text;
+              const dateFiled = cluster.date_filed ?? null;
+
+              return {
+                status: "resolved",
+                content,
+                sourceId: "courtlistener",
+                metadata: {
+                  caseName,
+                  citation: citationText,
+                  court: this.extractCourtFromUrl(opinion.cluster),
+                  dateFiled,
+                },
+              };
+            } catch {
+              // This opinion failed to fetch (404, network, etc.) —
+              // try the next one in the cluster rather than failing
+              // the whole citation.
+              continue;
+            }
+          }
+        }
       }
 
-      const cluster = firstHit.clusters[0];
-      const subOpinions = cluster.sub_opinions;
-
-      if (!subOpinions || subOpinions.length === 0) {
-        return { status: "unresolved" };
-      }
-
-      const opinionUrl = subOpinions[0];
-      const opinion = await this.fetchOpinion(opinionUrl);
-
-      const caseName =
-        (cluster.case_name as string) ?? "Unknown Case";
-      const citationText =
-        cluster.citations?.[0]?.cite ?? citation.text;
-      const dateFiled = cluster.date_filed ?? null;
-
-      return {
-        status: "resolved",
-        content: opinion.plain_text || opinion.html || "",
-        sourceId: "courtlistener",
-        metadata: {
-          caseName,
-          citation: citationText,
-          court: this.extractCourtFromUrl(opinion.cluster),
-          dateFiled,
-        },
-      };
+      return { status: "unresolved" };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error";

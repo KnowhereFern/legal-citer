@@ -1,5 +1,6 @@
 import type { Citation, ResolverResult } from "@/lib/types";
 import type { AuthorityResolver } from "./index";
+import { normalizeCitationKey } from "./normalize";
 
 export class CompositeResolver implements AuthorityResolver {
   private resolvers: AuthorityResolver[];
@@ -10,7 +11,10 @@ export class CompositeResolver implements AuthorityResolver {
   }
 
   async resolve(citation: Citation): Promise<ResolverResult> {
-    const key = citation.text;
+    // Key on a normalized form so surface variants of the same authority
+    // ("F.3d 12" vs "F. 3d 12", trailing comma) hit the same cache entry and
+    // return consistent results instead of re-running the source chain.
+    const key = normalizeCitationKey(citation.text);
     const cached = this.cache.get(key);
     if (cached) {
       return cached;
