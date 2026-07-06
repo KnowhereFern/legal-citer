@@ -1,10 +1,15 @@
 import { FINDING_RESULT } from "@/lib/constants";
 import type { Citation, ExtractedDocument, ResolverResult } from "@/lib/types";
+import { classifyCitation } from "../classifier";
 import type { VerificationCheck } from "./index";
 
 const YEAR_PATTERN = /\((\d{4})\)/;
+
+// Case-law reporters (not U.S.C. — the United States Code is a statute
+// collection, not a reporter, and statutes carry no court). Only citations
+// classified as case_law are expected to have these in authority metadata.
 const REPORTER_PATTERN =
-  /(U\.S\.|F\.(2d|3d|4th)|S\.Ct\.|L\.Ed\.|U\.S\.C\.|[A-Z]{2,}\.(?:S\.(?:2d|3d|4th))?)/;
+  /(U\.S\.|F\.(2d|3d|4th)|S\.Ct\.|L\.Ed\.|[A-Z]{2,}\.(?:S\.(?:2d|3d|4th))?)/;
 const COURT_PATTERN =
   /(Supreme Court|Circuit|District|Court of Appeals|S\.Ct\.|U\.S\.)/i;
 
@@ -57,14 +62,20 @@ export const citationMetadataCheck: VerificationCheck = {
       );
     }
 
-    const hasReporter = REPORTER_PATTERN.test(citation.text);
-    if (hasReporter && meta.reporter === undefined) {
-      issues.push("Citation contains reporter but authority has no reporter metadata");
-    }
+    // Reporter / court are case-law concepts. A U.S.C. citation has no
+    // reporter (the "U.S.C." token isn't one) and no court (statutes are
+    // enacted by Congress, not decided by one), so demanding them produces a
+    // false FAIL on every statute. Only enforce their presence for case law.
+    if (classifyCitation(citation) === "case_law") {
+      const hasReporter = REPORTER_PATTERN.test(citation.text);
+      if (hasReporter && meta.reporter === undefined) {
+        issues.push("Citation contains reporter but authority has no reporter metadata");
+      }
 
-    const hasCourt = COURT_PATTERN.test(citation.text);
-    if (hasCourt && meta.court === undefined) {
-      issues.push("Citation references court but authority has no court metadata");
+      const hasCourt = COURT_PATTERN.test(citation.text);
+      if (hasCourt && meta.court === undefined) {
+        issues.push("Citation references court but authority has no court metadata");
+      }
     }
 
     if (issues.length > 0) {
