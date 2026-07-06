@@ -132,6 +132,11 @@ export class CourtListenerResolver implements AuthorityResolver {
                   citation: citationText,
                   court: this.extractCourtFromUrl(opinion.cluster),
                   dateFiled,
+                  // Parsed subfields consumed by citation_metadata. Without
+                  // these, that check false-fails every CL-resolved citation
+                  // that contains a reporter ("... no reporter metadata").
+                  reporter: parseReporter(citationText),
+                  year: parseYear(dateFiled),
                 },
               };
             } catch {
@@ -209,4 +214,35 @@ export class CourtListenerResolver implements AuthorityResolver {
       return null;
     }
   }
+}
+
+/**
+ * Parse the reporter token out of a canonical citation string
+ * ("565 U.S. 368" → "U.S.", "74 F.4th 1336" → "F.4th"). A canonical
+ * citation is "{volume} {reporter} {page}", so the reporter is the middle
+ * segment between the leading and trailing numbers. Returns null when the
+ * string doesn't match that shape (e.g. null, slip opinions, statutes).
+ *
+ * The citation_metadata check uses this to avoid a false "no reporter
+ * metadata" failure: previously it flagged any resolved case citation whose
+ * text contained a reporter but whose authority metadata had no `reporter`
+ * field — which fired for every CourtListener hit, because CourtListener
+ * only returned the canonical citation STRING, not a parsed reporter.
+ */
+function parseReporter(canonicalCitation: string | null | undefined): string | null {
+  if (!canonicalCitation) return null;
+  const match = canonicalCitation.match(/^\d+\s+(.+?)\s+\d+/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract the 4-digit year from an ISO date string ("2012-03-21" → 2012)
+ * or from a bare year ("2012" → 2012). Returns null when no year is found.
+ * Used by citation_metadata to populate meta.year so the year-mismatch
+ * check has something to compare against.
+ */
+function parseYear(dateFiled: string | null | undefined): number | null {
+  if (!dateFiled) return null;
+  const match = String(dateFiled).match(/(\d{4})/);
+  return match ? parseInt(match[1], 10) : null;
 }
