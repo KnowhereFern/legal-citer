@@ -24,7 +24,10 @@ model Organization {
   // Billing placeholder (Free until Stripe/Clerk Billing is wired).
   plan String @default("free")
 
-  // Notification preferences (state only; delivery is a future task).
+  // Notification preferences. Consumed by src/lib/notifications.ts when a
+  // run reaches a terminal state — report-ready email is sent when
+  // notifyReportReady is on; the share link is included when notifyShareLink
+  // is on. Delivery requires RESEND_API_KEY; otherwise silently no-ops.
   notifyReportReady Boolean @default(true)
   notifyAttachPdf   Boolean @default(true)
   notifyShareLink   Boolean @default(true)

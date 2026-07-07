@@ -86,6 +86,22 @@ export async function getUserSummary(
 }
 
 /**
+ * Primary email address for a user. Used by the notification sender to know
+ * where to deliver run-completion emails. Returns null when Clerk isn't
+ * available (E2E bypass) or the user has no email on file.
+ */
+export async function getUserEmail(userId: string): Promise<string | null> {
+  const client = await getClerkBackend();
+  if (!client) return null;
+  try {
+    const u = await client.users.getUser(userId);
+    return u.primaryEmailAddress?.emailAddress ?? u.emailAddresses[0]?.emailAddress ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Current user active sessions.
  */
 export async function listUserSessions(
