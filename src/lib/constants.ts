@@ -34,6 +34,7 @@ export const CHECK_TYPES = {
   CITATION_METADATA: "citation_metadata",
   QUOTE_MATCHING: "quote_matching",
   RECORD_CITATION: "record_citation",
+  SUBSEQUENT_HISTORY: "subsequent_history",
 } as const;
 
 export type CheckType = (typeof CHECK_TYPES)[keyof typeof CHECK_TYPES];
