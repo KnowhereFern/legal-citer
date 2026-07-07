@@ -11,11 +11,20 @@ import {
   enforceResourceLimits,
 } from "@/lib/isolation";
 import { RUN_STATUS } from "@/lib/constants";
+import { sendRunCompleteNotifications } from "@/lib/notifications";
 import { QUEUE_NAME, getRedisConnection } from "./queue";
 
 async function processJob(job: Job) {
   const { runId, config } = job.data;
   const workspace = createRunWorkspace(runId);
+
+  // Lifted to the outer scope so the catch block can fire failure
+  // notifications with the run's org/creator/filename context.
+  let runMeta: {
+    orgId: string;
+    createdBy: string;
+    documentFilename: string;
+  } | null = null;
 
   try {
     const run = await prisma.verificationRun.findUnique({
@@ -26,6 +35,12 @@ async function processJob(job: Job) {
     if (!run?.document) {
       throw new Error(`Run or document not found: ${runId}`);
     }
+
+    runMeta = {
+      orgId: run.orgId,
+      createdBy: run.createdBy,
+      documentFilename: run.document.filename,
+    };
 
     await prisma.verificationRun.update({
       where: { id: runId },
@@ -73,6 +88,19 @@ async function processJob(job: Job) {
         completedAt: new Date(),
       },
     });
+
+    // Fire report-ready email if the org opted in. Best-effort — wrapped
+    // internally so a delivery failure never affects the run's terminal
+    // state. Skipped silently when RESEND_API_KEY isn't set.
+    if (runMeta) {
+      await sendRunCompleteNotifications({
+        runId,
+        orgId: runMeta.orgId,
+        createdBy: runMeta.createdBy,
+        documentFilename: runMeta.documentFilename,
+        status: "completed",
+      });
+    }
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unknown error";
     // Only mark the run FAILED on the final attempt. With attempts: 3 +
@@ -94,6 +122,19 @@ async function processJob(job: Job) {
           completedAt: new Date(),
         },
       });
+      // Notify on terminal failure (not between retries) — the user needs
+      // to know their run didn't complete so they can re-upload or contact
+      // support. Best-effort, same as the success path.
+      if (runMeta) {
+        await sendRunCompleteNotifications({
+          runId,
+          orgId: runMeta.orgId,
+          createdBy: runMeta.createdBy,
+          documentFilename: runMeta.documentFilename,
+          status: "failed",
+          failureReason: reason,
+        });
+      }
     } else {
       // Surface the transient failure in the reason field but keep the run
       // in RUNNING so the UI stays consistent through the retry window.
