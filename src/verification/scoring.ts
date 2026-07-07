@@ -23,10 +23,17 @@ export function computeScore(findings: CheckResult[]): ScoreResult {
       f.checkType === CHECK_TYPES.QUOTE_MATCHING && f.result === FINDING_RESULT.FAIL
   ).length;
 
+  // Coverage: of the citations we ran checks against, what fraction gave a
+  // definitive answer (pass/fail) vs. inconclusive (unresolved/error/N/A).
+  // When there are zero findings — a genuinely clean brief with no citations
+  // to verify — coverage is undefined, not 100%. Returning 100 here would
+  // render "Every citation checks out. Ready to file." in the report hero,
+  // which is misleading. 0 is the honest answer (we verified 0 of 0). The
+  // report page already special-cases this to a neutral message.
   const coveragePct =
     findings.length > 0
       ? Math.round((definitiveCount / findings.length) * 100)
-      : 100;
+      : 0;
 
   let riskBand: string;
   if (failCount >= 3) {

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { FINDING_RESULT } from "@/lib/constants";
+import { FINDING_RESULT, RUN_STATUS } from "@/lib/constants";
 import { HYBRID_PIPELINE_STAGES } from "@/lib/pipeline-stages";
 import type { CheckResult, PipelineConfig } from "@/lib/types";
 
@@ -65,6 +65,7 @@ export async function runHybridVerification(params: {
   const { runId, documentBuffer, contentType, config, enableSupportAnalysis } =
     params;
 
+  // Run the base pipeline first (citations → checks → score → report).
   await runVerification({ runId, documentBuffer, contentType, config });
 
   if (!enableSupportAnalysis) {
@@ -79,6 +80,16 @@ export async function runHybridVerification(params: {
     });
     return;
   }
+
+  // The base pipeline marked the run COMPLETED at the end of persist_results.
+  // We're about to run more work (LLM analysis + score recompute), so flip
+  // back to RUNNING so the UI doesn't briefly show "completed" while the
+  // LLM is still grinding through case-law citations. The processor sets
+  // COMPLETED again once this whole function returns.
+  await prisma.verificationRun.update({
+    where: { id: runId },
+    data: { status: RUN_STATUS.RUNNING },
+  });
 
   await upsertStage(runId, HYBRID_PIPELINE_STAGES[0], "running");
 

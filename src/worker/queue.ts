@@ -34,6 +34,19 @@ export async function enqueueVerificationJob(data: {
     jobId: data.runId,
     removeOnComplete: 100,
     removeOnFail: 50,
-    attempts: 1,
+    // The pipeline calls multiple flaky external APIs (CourtListener,
+    // GovInfo, flsenate.gov) that intermittently 5xx or rate-limit. A single
+    // transient failure used to mark the run permanently FAILED (attempts: 1),
+    // forcing the user to re-upload and re-process the entire document.
+    // Two retries with exponential backoff absorbs blips without masking
+    // genuine failures (a run that fails 3× is almost certainly a real
+    // problem, not a transient one). The processor's catch block still
+    // marks the run FAILED before re-throwing, so the eventual terminal
+    // state on a 3rd failure is correct.
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 10_000,
+    },
   });
 }

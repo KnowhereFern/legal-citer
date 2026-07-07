@@ -4,6 +4,7 @@ import path from "path";
 import { prisma } from "@/lib/db";
 import { readFile } from "@/lib/storage";
 import { runVerification } from "@/verification/pipeline/runner";
+import { runHybridVerification } from "@/verification/hybrid-pipeline";
 import {
   createRunWorkspace,
   cleanupWorkspace,
@@ -41,12 +42,29 @@ async function processJob(job: Job) {
       pageCountLimit: config.pageCountLimit,
     });
 
-    await runVerification({
-      runId,
-      documentBuffer,
-      contentType: run.document.contentType,
-      config,
-    });
+    // When the user opts into support analysis (the LLM-assisted proposition
+    // check), route through the hybrid pipeline — it runs the base pipeline,
+    // then calls the SupportAnalyst on each resolved case-law citation and
+    // recomputes the score with the LLM findings folded in. Previously the
+    // worker always called runVerification directly, so the
+    // enableSupportAnalysis flag flowed upload → API → worker and was then
+    // dropped on the floor — the hybrid path was unreachable in production.
+    if (config.enableSupportAnalysis) {
+      await runHybridVerification({
+        runId,
+        documentBuffer,
+        contentType: run.document.contentType,
+        config,
+        enableSupportAnalysis: true,
+      });
+    } else {
+      await runVerification({
+        runId,
+        documentBuffer,
+        contentType: run.document.contentType,
+        config,
+      });
+    }
 
     await prisma.verificationRun.update({
       where: { id: runId },
@@ -57,14 +75,35 @@ async function processJob(job: Job) {
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unknown error";
-    await prisma.verificationRun.update({
-      where: { id: runId },
-      data: {
-        status: RUN_STATUS.FAILED,
-        failureReason: reason,
-        completedAt: new Date(),
-      },
-    });
+    // Only mark the run FAILED on the final attempt. With attempts: 3 +
+    // exponential backoff, attempts 1 and 2 will be retried — marking FAILED
+    // prematurely would make the UI flash "failed" between retries, and a
+    // successful retry would then need to flip it back to RUNNING. BullMQ
+    // exposes attemptsMade/attemptsMade on the job; on a non-final attempt
+    // we re-throw without touching status so the next attempt picks up
+    // cleanly.
+    const attemptsMade = job.attemptsMade;
+    const maxAttempts = job.opts?.attempts ?? 1;
+    const isFinalAttempt = attemptsMade >= maxAttempts;
+    if (isFinalAttempt) {
+      await prisma.verificationRun.update({
+        where: { id: runId },
+        data: {
+          status: RUN_STATUS.FAILED,
+          failureReason: reason,
+          completedAt: new Date(),
+        },
+      });
+    } else {
+      // Surface the transient failure in the reason field but keep the run
+      // in RUNNING so the UI stays consistent through the retry window.
+      await prisma.verificationRun.update({
+        where: { id: runId },
+        data: {
+          failureReason: `Attempt ${attemptsMade} failed (retrying): ${reason}`,
+        },
+      });
+    }
     throw error;
   } finally {
     await cleanupWorkspace(workspace);

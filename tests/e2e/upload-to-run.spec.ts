@@ -18,7 +18,7 @@ test("uploads a document, processes it, and opens the generated report", async (
 
   await page.goto("/upload");
   await expect(
-    page.getByRole("heading", { name: "Upload & Verify" })
+    page.getByRole("heading", { name: "Check your citations" })
   ).toBeVisible();
 
   const fileName = "e2e-citation.docx";

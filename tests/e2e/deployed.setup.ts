@@ -58,7 +58,7 @@ setup("authenticate Clerk test user", async ({ page }) => {
 
   await page.goto("/upload");
   await expect(
-    page.getByRole("heading", { name: "Upload & Verify" })
+    page.getByRole("heading", { name: "Check your citations" })
   ).toBeVisible();
 
   await page.context().storageState({ path: authFile });
