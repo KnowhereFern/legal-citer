@@ -129,7 +129,7 @@ The deployed test performs: Clerk login -> upload real DOCX fixture -> create ve
 
 - This is staging-ready, not a full production hardening pass.
 - Clerk organization rows are still synced by webhook in normal operation; deployed E2E also upserts the dedicated test org row to make setup deterministic.
-- Current staging uses a Clerk keyless test instance with organizations enabled for E2E. Before production, claim/configure a real Clerk instance, add the production domain, create the Clerk webhook endpoint, and replace `CLERK_WEBHOOK_SECRET` with the endpoint's actual signing secret.
+- Current staging uses a Clerk keyless test instance with organizations enabled for E2E. To rotate to production Clerk keys, run `node scripts/rotate-clerk-keys.mjs` — it validates the live keys (`sk_live_*`/`pk_live_*`), sets them on both Railway services, waits for redeploy, and smoke-tests auth. The script deliberately does NOT set `CLERK_WEBHOOK_SECRET` automatically (a wrong value would silently break webhook signature verification); set that manually after creating the production webhook endpoint in the Clerk dashboard.
 - Railway Bucket traffic is public S3-compatible traffic; service-to-bucket egress is counted as service egress by Railway.
 - PACER and OpenRouter remain off unless explicitly configured.
 - If deployed E2E is run without a public/test-accessible staging database URL, setup and cleanup cannot seed or remove test data.
