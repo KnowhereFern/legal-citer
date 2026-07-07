@@ -125,8 +125,8 @@ export default function TermsPage() {
           If you use the Service through a law firm, company, school, clinic,
           legal aid organization, or other workspace, your access may be
           controlled by workspace administrators. Administrators may invite
-          users, remove users, manage billing, set retention policies, view
-          usage, and access reports and audit records within the workspace.
+          users, remove users, set retention policies, view usage, and access
+          reports and audit records within the workspace.
         </LegalP>
         <LegalP>
           You are responsible for setting appropriate access permissions for
@@ -252,7 +252,7 @@ export default function TermsPage() {
             `represent that ${BRAND.company} is a court, law firm, attorney, government agency, bar association, or official filing authority;`,
             "falsely claim that a filing is court-approved, sanction-proof, legally correct, or guaranteed because it was processed by BaddieLegal;",
             "reverse engineer, scrape, overload, attack, or attempt unauthorized access to the Service;",
-            "bypass usage limits, security controls, access controls, or billing systems;",
+            "bypass usage limits, security controls, or access controls;",
             "submit malware, malicious code, or harmful files;",
             "use outputs to mislead a court, tribunal, client, opposing party, or public body;",
             "remove, obscure, or alter disclaimers, limitations, hashes, status labels, or exception notices in a misleading way;",
@@ -281,24 +281,19 @@ export default function TermsPage() {
         </LegalP>
       </LegalSection>
 
-      <LegalSection id="payments-credits-and-subscriptions" title="13. Payments, Credits, and Subscriptions">
+      <LegalSection id="payments-credits-and-subscriptions" title="13. Fees and Paid Plans">
         <LegalP>
-          Fees, plan terms, usage limits, overages, taxes, and payment terms
-          are shown at checkout or in your order form. You authorize us and our
-          payment processors to charge your selected payment method for fees and
-          taxes.
+          The Service is currently offered free of charge during our beta
+          period. No payment information is collected and no fees are billed
+          for use of the Service at this time.
         </LegalP>
         <LegalP>
-          Unless stated otherwise, verification runs are charged when submitted
-          or when processing begins. Failed uploads, unsupported file types,
-          excessive file sizes, or user-canceled runs may still count against
-          free trials or usage limits if we incur processing costs.
-        </LegalP>
-        <LegalP>
-          Subscription fees renew until canceled. You may cancel future
-          renewals through your account settings or by contacting support.
-          Cancellation does not automatically refund prior charges unless
-          required by law or stated in your plan.
+          We may introduce paid plans, subscriptions, usage limits, or other
+          fees in the future. If we do, the fees, plan terms, usage limits, and
+          payment terms will be shown at checkout or in your order form before
+          you commit, and this section will be updated to reflect the then-
+          current terms. Any future paid features will require your express
+          agreement before you are charged.
         </LegalP>
       </LegalSection>
 
@@ -320,15 +315,14 @@ export default function TermsPage() {
           and user choice. We may delete raw uploads, extracted text, temporary
           files, and intermediate processing files after completion or after a
           short retention period, while retaining reports, hashes, run
-          metadata, billing records, audit logs, and legally required records
-          for longer periods.
+          metadata, audit logs, and legally required records for longer
+          periods.
         </LegalP>
         <LegalP>
           Deletion may not be instant across backups, logs, caches, soft-delete
-          systems, payment records, security logs, or third-party processors. We
-          will handle deletion according to our posted retention settings,
-          Privacy Policy, legal obligations, security needs, and backup
-          practices.
+          systems, security logs, or third-party processors. We will handle
+          deletion according to our posted retention settings, Privacy Policy,
+          legal obligations, security needs, and backup practices.
         </LegalP>
       </LegalSection>
 
@@ -374,9 +368,10 @@ export default function TermsPage() {
         <LegalP>
           The Service may integrate with third-party services such as
           authentication providers, cloud hosting providers, storage providers,
-          payment processors, analytics tools, email providers, AI providers,
-          legal data providers, court data systems, and document-processing
-          tools.
+          analytics tools, email providers, AI providers, legal data providers,
+          court data systems, and document-processing tools. If paid plans are
+          introduced in the future, the Service may also integrate with payment
+          processors at that time.
         </LegalP>
         <LegalP>
           Third-party services are governed by their own terms and policies.{" "}
@@ -425,8 +420,8 @@ export default function TermsPage() {
           TOTAL LIABILITY FOR ALL CLAIMS ARISING FROM OR RELATED TO THE SERVICE
           WILL NOT EXCEED THE GREATER OF: (A) THE AMOUNTS YOU PAID TO{" "}
           {BRAND.company.toUpperCase()} FOR THE SERVICE GIVING RISE TO THE CLAIM
-          DURING THE THREE MONTHS BEFORE THE EVENT GIVING RISE TO LIABILITY; OR
-          (B) $100.
+          DURING THE THREE MONTHS BEFORE THE EVENT GIVING RISE TO LIABILITY (OR
+          $0 IF THE SERVICE WAS PROVIDED FREE OF CHARGE); OR (B) $100.
         </LegalCallout>
         <LegalP>
           Some jurisdictions do not allow certain limitations of liability. In
@@ -460,15 +455,15 @@ export default function TermsPage() {
         <LegalP>
           We may suspend or terminate your access if we believe you violated
           these Terms, created risk for the Service or other users, failed to
-          pay fees, used the Service unlawfully, or caused legal, security,
-          operational, or reputational risk.
+          failed to pay any amounts owed for paid services, used the Service
+          unlawfully, or caused legal, security, operational, or reputational
+          risk.
         </LegalP>
         <LegalP>
           You may stop using the Service at any time. Certain sections of these
           Terms will survive termination, including ownership, disclaimers,
-          limitation of liability, indemnification, payment obligations,
-          retention, dispute resolution, and any provisions that by their nature
-          should survive.
+          limitation of liability, indemnification, retention, dispute
+          resolution, and any provisions that by their nature should survive.
         </LegalP>
       </LegalSection>
 

@@ -41,9 +41,8 @@ export default function PrivacyPage() {
         <LegalP>
           This Privacy Policy applies to information we process through the
           Service. It does not apply to third-party websites, legal research
-          providers, court systems, payment processors, authentication
-          providers, or other third parties that have their own privacy
-          policies.
+          providers, court systems, authentication providers, or other third
+          parties that have their own privacy policies.
         </LegalP>
         <LegalP>
           If you use the Service through a law firm, company, school, clinic,
@@ -73,12 +72,14 @@ export default function PrivacyPage() {
           related processing information.
         </LegalP>
 
-        <LegalH3>Payment and Billing Information</LegalH3>
+        <LegalH3>Billing and Plan Information</LegalH3>
         <LegalP>
-          Plan type, purchase history, invoice details, billing address, tax
-          information, subscription status, and payment processor identifiers.
-          We do not intentionally store full payment card numbers on our own
-          servers.
+          The Service is currently in a free beta period. We do not collect
+          payment card numbers, billing addresses, or tax information. If paid
+          plans are introduced in the future, we will collect only the plan and
+          billing information necessary to process payments (typically via a
+          third-party payment processor) and will update this section to
+          describe what is collected at that time.
         </LegalP>
 
         <LegalH3>Usage and Device Information</LegalH3>
@@ -105,13 +106,12 @@ export default function PrivacyPage() {
             "extract and verify citations, quotes, metadata, record references, and AI-use disclosure support;",
             "create reports, public verification summaries, private exception reports, hashes, timestamps, and audit records;",
             "authenticate users and manage workspace access;",
-            "process payments and prevent fraud;",
             "provide support and respond to requests;",
             "monitor security, prevent abuse, debug errors, and protect the Service;",
             "analyze usage and improve user experience;",
             "comply with law, court orders, subpoenas, legal process, and regulatory obligations;",
             "enforce our Terms and protect rights, safety, and property;",
-            "send service notices, security alerts, billing notices, product updates, and marketing communications where permitted.",
+            "send service notices, security alerts, product updates, and marketing communications where permitted.",
           ]}
         />
       </LegalSection>
@@ -138,7 +138,7 @@ export default function PrivacyPage() {
 
       <LegalSection id="retention" title="5. Retention">
         <LegalP>
-          Retention may vary by plan, workspace settings, document type, user
+          Retention may vary by workspace settings, document type, user
           choice, legal obligations, security needs, and technical constraints.
           Our intended default retention model is:
         </LegalP>
@@ -147,7 +147,7 @@ export default function PrivacyPage() {
             "raw uploaded files: deleted after processing or within a short period unless retention is enabled;",
             "extracted full text and temporary files: deleted after processing or within a short period unless retention is enabled;",
             "reports and verification records: retained for the period shown in the product or workspace settings;",
-            "audit metadata, hashes, billing records, and security logs: retained as needed for legal, security, accounting, compliance, fraud-prevention, and dispute-resolution purposes;",
+            "audit metadata, hashes, and security logs: retained as needed for legal, security, accounting, compliance, fraud-prevention, and dispute-resolution purposes;",
             "backups and logs: deleted or overwritten on normal backup and log rotation schedules.",
           ]}
         />
@@ -167,10 +167,11 @@ export default function PrivacyPage() {
         <LegalH3>Service Providers</LegalH3>
         <LegalP>
           Cloud hosting providers, storage providers, authentication providers,
-          payment processors, email providers, analytics providers, logging and
-          security vendors, AI providers, OCR providers, legal data providers,
-          court-data connectors, customer support tools, and other vendors that
-          help us operate the Service.
+          email providers, analytics providers, logging and security vendors,
+          AI providers, OCR providers, legal data providers, court-data
+          connectors, customer support tools, and other vendors that help us
+          operate the Service. If paid plans are introduced, payment processors
+          may be added at that time.
         </LegalP>
 
         <LegalH3>Workspace Administrators and Authorized Users</LegalH3>
@@ -332,10 +333,9 @@ export default function PrivacyPage() {
       <LegalSection id="third-party-links-and-integrations" title="16. Third-Party Links and Integrations">
         <LegalP>
           The Service may link to or integrate with third-party websites, court
-          systems, legal research tools, payment processors, authentication
-          tools, analytics tools, and other services. We are not responsible
-          for the privacy practices of third parties. Review their policies
-          before using them.
+          systems, legal research tools, authentication tools, analytics tools,
+          and other services. We are not responsible for the privacy practices
+          of third parties. Review their policies before using them.
         </LegalP>
       </LegalSection>
 
