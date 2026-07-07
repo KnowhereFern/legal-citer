@@ -2,7 +2,27 @@ import crypto from "crypto";
 import { prisma } from "@/lib/db";
 
 function getSigningKey(): string {
-  return process.env.MANIFEST_SIGNING_KEY || "dev-manifest-signing-key";
+  const key = process.env.MANIFEST_SIGNING_KEY;
+  // The manifest signature is the product's core trust guarantee: it proves
+  // a verification report wasn't tampered with after generation. Falling back
+  // to a hard-coded dev value silently in production would let anyone who
+  // reads this source (it's public on GitHub) forge a valid signature for
+  // any manifest — defeating the entire mechanism. Require the env var to
+  // be set explicitly; fail loud at the first sign/create call if it isn't.
+  if (!key) {
+    throw new Error(
+      "MANIFEST_SIGNING_KEY is not set. Generate a strong random value " +
+        "(e.g. `openssl rand -hex 32`) and set it as a Railway variable on " +
+        "both the web and worker services before deploying to production.",
+    );
+  }
+  if (key.length < 32) {
+    throw new Error(
+      "MANIFEST_SIGNING_KEY must be at least 32 characters. Use a strong " +
+        "random value (e.g. `openssl rand -hex 32`).",
+    );
+  }
+  return key;
 }
 
 function computeHmac(data: string): string {

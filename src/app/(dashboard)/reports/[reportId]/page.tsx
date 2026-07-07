@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
+  FileText,
   FileWarning,
   Info,
   XCircle,
@@ -328,7 +329,21 @@ export default async function ReportDetailPage({
           document is ready. */}
       <Card>
         <CardContent className="py-6">
-          {exceptions === 0 ? (
+          {extracted === 0 ? (
+            <div className="flex items-start gap-3">
+              <FileText className="mt-0.5 size-6 text-muted-foreground" />
+              <div className="space-y-1">
+                <p className="text-lg font-medium">
+                  No citations were found to verify.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  This document contained no extractable legal citations. If
+                  you expected any, the upload may have been a scanned image
+                  or a non-standard file — check the run detail page.
+                </p>
+              </div>
+            </div>
+          ) : exceptions === 0 ? (
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 size-6 text-success" />
               <p className="text-lg font-medium">

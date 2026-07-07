@@ -106,6 +106,31 @@ export async function runVerification(params: {
       return;
     }
 
+    // Scanned-PDF / empty-extraction guard. A multi-page PDF that yields
+    // almost no text is almost certainly a scanned image without an OCR
+    // layer — the extractor returns ~0 characters of body text. Without this
+    // guard the run sails through with 0 citations, computeScore returns
+    // coveragePct: 100, and the report hero reads "Every citation checks
+    // out. Ready to file." — the opposite of the truth, and dangerous.
+    //
+    // We threshold on characters-per-page rather than raw length so a short
+    // but legitimate document (1-page cover sheet) isn't flagged, while a
+    // 30-page scanned brief (which would legitimately contain thousands of
+    // words of citations) is. The 50 chars/page floor is intentionally
+    // generous: a real text PDF averages 1500-3000 chars/page.
+    const isPdf = contentType === "application/pdf";
+    const charsPerPage =
+      doc.pageCount > 0 ? doc.text.trim().length / doc.pageCount : 0;
+    if (isPdf && doc.pageCount >= 2 && charsPerPage < 50) {
+      await failRun(
+        runId,
+        `No extractable text found in this PDF (pageCount=${doc.pageCount}, ~${Math.round(charsPerPage)} chars/page). ` +
+          "The document appears to be a scanned image without an OCR text layer. " +
+          "Run it through OCR (e.g. Adobe Acrobat's 'Recognize Text') and re-upload.",
+      );
+      return;
+    }
+
     await updateStage(runId, PIPELINE_STAGES[1], "completed", {
       pageCount: doc.pageCount,
       paragraphCount: doc.paragraphs.length,
