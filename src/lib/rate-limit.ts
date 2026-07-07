@@ -122,18 +122,28 @@ async function checkRedis(
   key: string,
   config: RateLimitConfig,
 ): Promise<RateLimitResult> {
-  // INCR is atomic. The first request in a window sets the key to 1; we then
-  // EXPIRE it so the window rolls. Subsequent requests just INCR.
-  const count = await redis.incr(key);
-  if (count === 1) {
-    await redis.expire(key, config.windowSec);
+  try {
+    // INCR is atomic. The first request in a window sets the key to 1; we then
+    // EXPIRE it so the window rolls. Subsequent requests just INCR.
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, config.windowSec);
+    }
+    const ttl = await redis.ttl(key);
+    return {
+      ok: count <= config.limit,
+      remaining: Math.max(0, config.limit - count),
+      resetSec: ttl > 0 ? ttl : config.windowSec,
+    };
+  } catch {
+    // Redis went away mid-request (connection dropped, "Stream isn't
+    // writeable" with enableOfflineQueue:false, etc.). Rate limiting is a
+    // defense-in-depth control, NOT a hard dependency — if Redis is down we
+    // fall back to in-memory per-instance limiting rather than 500-ing every
+    // upload. Weaker (per-instance, not coordinated) but better than blocking
+    // all traffic. The next request will retry the Redis connection.
+    return checkInMemory(key, config);
   }
-  const ttl = await redis.ttl(key);
-  return {
-    ok: count <= config.limit,
-    remaining: Math.max(0, config.limit - count),
-    resetSec: ttl > 0 ? ttl : config.windowSec,
-  };
 }
 
 // --- In-memory backend (dev / Redis-down fallback) ----------------------

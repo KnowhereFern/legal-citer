@@ -42,20 +42,34 @@ async function fetchWithRetry(
       const response = await fetch(url, init);
 
       if (response.status === 429) {
-        if (attempt < retries) {
-          let waitMs = RATE_LIMIT_DELAY_MS;
-          try {
-            const body = await response.clone().json();
-            const match = typeof body?.detail === "string"
-              ? body.detail.match(/available in (\d+) seconds/i)
-              : null;
-            if (match) {
-              waitMs = (parseInt(match[1], 10) + 1) * 1000;
-            }
-          } catch {}
+        // Check whether this is a brief hiccup (retry-worthy) or an exhausted
+        // hourly quota (not retry-worthy). CourtListener's throttle response
+        // includes "available in N seconds" — when N is large (>120s), the
+        // hourly quota is tapped out and retrying would stall the pipeline
+        // for minutes. Return the 429 immediately so the resolver maps it to
+        // source_failure → soft "couldn't verify" instead of hanging.
+        let availableInSec = 0;
+        try {
+          const body = await response.clone().json();
+          const match = typeof body?.detail === "string"
+            ? body.detail.match(/available in (\d+) seconds/i)
+            : null;
+          if (match) {
+            availableInSec = parseInt(match[1], 10);
+          }
+        } catch {}
+
+        const quotaExhausted = availableInSec > 120;
+        if (attempt < retries && !quotaExhausted) {
+          // Brief hiccup — wait the (short) server-recommended time, capped.
+          const waitMs = Math.min(
+            availableInSec > 0 ? (availableInSec + 1) * 1000 : RATE_LIMIT_DELAY_MS,
+            60_000,
+          );
           await sleep(waitMs);
           continue;
         }
+        // Quota exhausted (or final attempt) — return the 429, don't stall.
         return response;
       }
 
