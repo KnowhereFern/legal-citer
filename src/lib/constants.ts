@@ -35,6 +35,9 @@ export const CHECK_TYPES = {
   QUOTE_MATCHING: "quote_matching",
   RECORD_CITATION: "record_citation",
   SUBSEQUENT_HISTORY: "subsequent_history",
+  PINPOINT_ACCURACY: "pinpoint_accuracy",
+  STATUTE_CURRENCY: "statute_currency",
+  SIGNAL_CORRECTNESS: "signal_correctness",
 } as const;
 
 export type CheckType = (typeof CHECK_TYPES)[keyof typeof CHECK_TYPES];
