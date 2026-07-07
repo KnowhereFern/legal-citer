@@ -9,8 +9,11 @@ const BASE_URL = "https://www.courtlistener.com/api/rest/v4";
 interface CitationLookupResult {
   clusters: Array<{
     case_name: string;
+    case_name_full?: string;
+    case_name_short?: string;
     citations: Array<{ cite: string }>;
     date_filed: string;
+    precedential_status?: string;
     sub_opinions: string[];
   }>;
 }
@@ -122,6 +125,12 @@ export class CourtListenerResolver implements AuthorityResolver {
               const citationText =
                 cluster.citations?.[0]?.cite ?? citation.text;
               const dateFiled = cluster.date_filed ?? null;
+              const precedentialStatus =
+                (cluster.precedential_status as string | undefined) ?? null;
+              const caseNameFull =
+                (cluster.case_name_full as string | undefined) ?? null;
+              const caseNameShort =
+                (cluster.case_name_short as string | undefined) ?? null;
 
               return {
                 status: "resolved",
@@ -129,9 +138,12 @@ export class CourtListenerResolver implements AuthorityResolver {
                 sourceId: "courtlistener",
                 metadata: {
                   caseName,
+                  caseNameFull,
+                  caseNameShort,
                   citation: citationText,
                   court: this.extractCourtFromUrl(opinion.cluster),
                   dateFiled,
+                  precedentialStatus,
                   // Parsed subfields consumed by citation_metadata. Without
                   // these, that check false-fails every CL-resolved citation
                   // that contains a reporter ("... no reporter metadata").

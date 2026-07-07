@@ -5,12 +5,24 @@ import { resolveWorkspace } from "@/lib/workspace";
 import { DEFAULT_PIPELINE_CONFIG } from "@/lib/types";
 import { enqueueVerificationJob } from "@/worker/queue";
 import { PIPELINE_STAGES } from "@/lib/pipeline-stages";
+import { checkRateLimit, RUN_RATE_LIMIT } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const workspace = await resolveWorkspace();
 
   if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate-limit run creation per org. Each run spins up a worker job that
+  // calls multiple external APIs; an unbounded loop would exhaust the worker
+  // and the upstream API quotas (GovInfo, CourtListener) for everyone.
+  const rl = await checkRateLimit(RUN_RATE_LIMIT);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many verification runs. Please slow down and try again shortly." },
+      { status: 429, headers: { "Retry-After": String(rl.resetSec) } },
+    );
   }
 
   const { orgId, userId } = workspace;

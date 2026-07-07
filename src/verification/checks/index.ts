@@ -2,6 +2,7 @@ import type { Citation, ExtractedDocument, ResolverResult } from "@/lib/types";
 import { citationExistenceCheck } from "./citation-existence";
 import { citationMetadataCheck } from "./citation-metadata";
 import { quoteMatchingCheck } from "./quote-matching";
+import { subsequentHistoryCheck } from "./subsequent-history";
 
 export interface VerificationCheck {
   name: string;
@@ -21,6 +22,7 @@ function registerCheck(check: VerificationCheck) {
 registerCheck(citationExistenceCheck);
 registerCheck(citationMetadataCheck);
 registerCheck(quoteMatchingCheck);
+registerCheck(subsequentHistoryCheck);
 
 export function getCheck(name: string): VerificationCheck | undefined {
   return checks.get(name);

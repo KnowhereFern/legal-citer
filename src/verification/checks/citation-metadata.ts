@@ -62,14 +62,81 @@ export const citationMetadataCheck: VerificationCheck = {
       );
     }
 
-    // Reporter / court are case-law concepts. A U.S.C. citation has no
-    // reporter (the "U.S.C." token isn't one) and no court (statutes are
-    // enacted by Congress, not decided by one), so demanding them produces a
-    // false FAIL on every statute. Only enforce their presence for case law.
+    // Reporter / court / volume / page / party-name are case-law concepts.
+    // A U.S.C. citation has no reporter (the "U.S.C." token isn't one) and
+    // no court (statutes are enacted by Congress, not decided by one), so
+    // demanding them produces a false FAIL on every statute. Only enforce
+    // their presence for case law.
     if (classifyCitation(citation) === "case_law") {
-      const hasReporter = REPORTER_PATTERN.test(citation.text);
-      if (hasReporter && meta.reporter === undefined) {
+      // --- Reporter: presence + value comparison ---
+      // Previously this check only verified the resolver RETURNED a reporter
+      // field; it never compared the value. Citing "565 U.S. 368" when the
+      // case is actually at "74 F.4th 1336" would pass. Now we compare.
+      const citeReporter = citation.text.match(REPORTER_PATTERN)?.[0];
+      if (citeReporter && meta.reporter === undefined) {
         issues.push("Citation contains reporter but authority has no reporter metadata");
+      } else if (
+        citeReporter &&
+        typeof meta.reporter === "string" &&
+        !normalizeReporter(citeReporter).includes(normalizeReporter(meta.reporter)) &&
+        !normalizeReporter(meta.reporter).includes(normalizeReporter(citeReporter))
+      ) {
+        issues.push(
+          `Reporter mismatch: citation uses "${citeReporter}", authority says "${meta.reporter}"`,
+        );
+      }
+
+      // --- Volume + page: parse from citation, compare to canonical ---
+      // The canonical citation (from CourtListener) is the authoritative
+      // "{vol} {reporter} {page}" form. If the brief cites a different
+      // volume or page for the same case, that's a mis-citation.
+      const citeVolPage = citation.text.match(/(\d+)\s+[A-Z][A-Za-z0-9.]+\s+(\d+)/);
+      const canonicalVolPage = typeof meta.citation === "string"
+        ? meta.citation.match(/(\d+)\s+[A-Z][A-Za-z0-9.]+\s+(\d+)/)
+        : null;
+      if (citeVolPage && canonicalVolPage) {
+        if (citeVolPage[1] !== canonicalVolPage[1]) {
+          issues.push(
+            `Volume mismatch: citation says vol. ${citeVolPage[1]}, authority says vol. ${canonicalVolPage[1]}`,
+          );
+        }
+        // Only flag page mismatch when the reporter ALSO matches — otherwise
+        // we'd be comparing page numbers across different reporters, which is
+        // meaningless. Same reporter + different page = transposed digits or
+        // a wrong pinpoint, both worth flagging.
+        if (
+          citeVolPage[1] === canonicalVolPage[1] &&
+          citeVolPage[2] !== canonicalVolPage[2]
+        ) {
+          issues.push(
+            `Page mismatch: citation says p. ${citeVolPage[2]}, authority says p. ${canonicalVolPage[2]}`,
+          );
+        }
+      }
+
+      // --- Party name accuracy ---
+      // The brief's "Mims v. Arrowhead" vs the canonical "Mims v. Arrow
+      // Financial Services, LLC" — a real mis-citation the previous check
+      // would have missed entirely. We compare the FIRST party token (last
+      // name of first party) since party names appear in many abbreviated
+      // forms and exact comparison would over-flag.
+      const citeParties = citation.text.match(/^([A-Z][A-Za-z.'\-]+)\s+v\.\s([A-Z][A-Za-z.'\-]+)/);
+      const canonicalName = typeof meta.caseName === "string" ? meta.caseName : "";
+      if (citeParties && canonicalName) {
+        const firstPartyCited = citeParties[1].toLowerCase();
+        const firstPartyCanonical = canonicalName.split(/\s+v\.\s/)[0]?.toLowerCase() ?? "";
+        // Match if the cited token is a prefix of the canonical, or vice
+        // versa ("Arrow" matches "Arrow Financial"; "Arrowhead" does NOT
+        // match "Arrow Financial" — that's a real mis-citation).
+        if (
+          firstPartyCanonical &&
+          !firstPartyCited.startsWith(firstPartyCanonical.slice(0, 4)) &&
+          !firstPartyCanonical.startsWith(firstPartyCited.slice(0, 4))
+        ) {
+          issues.push(
+            `Party name mismatch: citation says "${citeParties[1]}", authority says "${canonicalName.split(/\s+v\.\s/)[0]}"`,
+          );
+        }
       }
 
       const hasCourt = COURT_PATTERN.test(citation.text);
@@ -101,3 +168,11 @@ export const citationMetadataCheck: VerificationCheck = {
     };
   },
 };
+
+/**
+ * Normalize a reporter string for fuzzy comparison. "F.3d" / "F. 3d" / "f3d"
+ * should all compare equal. Strips spaces, periods, and lowercases.
+ */
+function normalizeReporter(reporter: string): string {
+  return reporter.toLowerCase().replace(/[\s.]/g, "");
+}

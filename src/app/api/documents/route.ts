@@ -5,12 +5,23 @@ import { computeFileHash, isValidFileType, isValidFileSize } from "@/lib/files";
 import { saveFile } from "@/lib/storage";
 import { logAuditEvent } from "@/lib/audit";
 import { resolveWorkspace } from "@/lib/workspace";
+import { checkRateLimit, UPLOAD_RATE_LIMIT } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   const workspace = await resolveWorkspace();
 
   if (!workspace) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate-limit per org before touching the form data or storage. A tight
+  // loop of 50 MB uploads can otherwise exhaust disk and Postgres.
+  const rl = await checkRateLimit(UPLOAD_RATE_LIMIT);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many uploads. Please slow down and try again shortly." },
+      { status: 429, headers: { "Retry-After": String(rl.resetSec) } },
+    );
   }
 
   const { orgId, userId } = workspace;
