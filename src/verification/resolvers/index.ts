@@ -2,6 +2,7 @@ import type { Citation, ResolverResult } from "@/lib/types";
 import { CAPResolver } from "./cap";
 import { CompositeResolver } from "./composite";
 import { CourtListenerResolver } from "./courtlistener";
+import { FloridaStatuteResolver } from "./florida";
 import { GovInfoResolver } from "./govinfo";
 import { PacerAuthManager } from "./pacer-auth";
 import { PacerResolver } from "./pacer";
@@ -13,6 +14,7 @@ export interface AuthorityResolver {
 export { CompositeResolver } from "./composite";
 export { CourtListenerResolver } from "./courtlistener";
 export { CAPResolver } from "./cap";
+export { FloridaStatuteResolver } from "./florida";
 export { GovInfoResolver } from "./govinfo";
 export { PacerAuthManager } from "./pacer-auth";
 export { PacerResolver } from "./pacer";
@@ -46,6 +48,13 @@ export function createResolver(): AuthorityResolver {
   // classifyCitation === "statute", so it's safe to always include.
   const govinfoApiKey = process.env.GOVINFO_API_KEY;
   resolvers.push(new GovInfoResolver(govinfoApiKey));
+
+  // Florida statutes. The Florida Senate publishes Fla. Stat. sections at
+  // stable URLs with no auth, so — unlike GovInfo — this needs no key and
+  // works out of the box. Self-gates on a "Fla. Stat." marker in the citation
+  // so it won't try to fetch federal sections. Add sibling state resolvers
+  // (Cal., N.Y., Tex.) here as they're built.
+  resolvers.push(new FloridaStatuteResolver());
 
   resolvers.push(new CAPResolver());
 

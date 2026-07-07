@@ -31,7 +31,13 @@ function isCaseLaw(text: string): boolean {
 }
 
 function isStatute(text: string): boolean {
-  return /U\.S\.C\.\s*§|C\.F\.R\.\s*§|\bsection\s+\d/.test(text);
+  return (
+    /U\.S\.C\.\s*§/.test(text) ||
+    /C\.F\.R\.\s*§/.test(text) ||
+    /\bFla\.\s*Stat\.(\s*Ann\.)?\s*§\s*\d/.test(text) ||
+    /§\s*\d{1,4}(\.\d+)?,?\s*Fla\.\s*Stat\./.test(text) ||
+    /\bsection\s+\d/.test(text)
+  );
 }
 
 function isRegulation(text: string): boolean {
