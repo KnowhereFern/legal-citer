@@ -24,6 +24,7 @@ scripts/*
 !scripts/cleanup-e2e.mjs
 !scripts/backfill-pipeline-stages.mjs
 !scripts/rotate-clerk-keys.mjs
+!scripts/guard-production-secrets.mjs
 run_story_builder
 Fern_Project_Proposals.xlsx
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && node scripts/guard-production-secrets.mjs && next build",
     "start": "next start",
     "worker": "tsx -r tsconfig-paths/register src/worker/index.ts",
     "e2e:server": "concurrently -k -s first -n next,worker \"E2E_AUTH_BYPASS=1 npm run dev -- --hostname 127.0.0.1 --port ${PORT:-3100}\" \"npm run worker\"",
