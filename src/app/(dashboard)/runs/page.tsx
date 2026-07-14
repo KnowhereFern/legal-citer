@@ -105,7 +105,7 @@ export default async function RunsPage() {
                         href={`/runs/${run.id}`}
                         className="focus-ring after:absolute after:inset-0 after:content-['']"
                       >
-                        <span className="relative z-10 font-medium">
+                        <span className="relative z-content font-medium">
                           {run.document.filename}
                         </span>
                       </Link>
@@ -116,7 +116,7 @@ export default async function RunsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="relative z-10 inline-block">
+                      <div className="relative z-content inline-block">
                         <RunStatusBadge value={run.status} />
                       </div>
                     </TableCell>

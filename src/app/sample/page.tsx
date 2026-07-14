@@ -46,7 +46,7 @@ export default function SampleReportPage() {
     <div className="relative min-h-screen bg-background">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,105,180,0.08),_transparent_50%)]" />
 
-      <header className="relative z-10 mx-auto flex w-full max-w-4xl items-center justify-between px-6 py-5 lg:px-0">
+      <header className="relative z-content mx-auto flex w-full max-w-4xl items-center justify-between px-6 py-5 lg:px-0">
         <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-4" />
           Back to home
@@ -56,7 +56,7 @@ export default function SampleReportPage() {
         </Button>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 pb-24 lg:px-0">
+      <main className="relative z-content mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 pb-24 lg:px-0">
         <Alert>
           <Info className="size-4" />
           <AlertTitle>Sample report</AlertTitle>

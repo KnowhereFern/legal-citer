@@ -23,7 +23,7 @@ export default function VerifyRecordLoading() {
 
       <Link
         href="/"
-        className="relative z-10 mb-8 flex items-center gap-2.5 focus-ring rounded-lg"
+        className="relative z-content mb-8 flex items-center gap-2.5 focus-ring rounded-lg"
         aria-hidden
         tabIndex={-1}
       >
@@ -35,7 +35,7 @@ export default function VerifyRecordLoading() {
         </span>
       </Link>
 
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-content w-full max-w-lg">
         <div className="mb-6 flex flex-col items-center gap-2">
           <Skeleton className="h-7 w-56" />
           <Skeleton className="h-4 w-72" />

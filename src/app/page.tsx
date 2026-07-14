@@ -22,10 +22,10 @@ export default async function HomePage() {
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,105,180,0.12),_transparent_50%)]" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-96 w-96 -translate-x-1/3 translate-y-1/3 rounded-full bg-[#ff69b4]/10 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 translate-x-1/4 rounded-full bg-[#00ffff]/5 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-96 w-96 -translate-x-1/3 translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-1/3 h-80 w-80 translate-x-1/4 rounded-full bg-secondary/5 blur-3xl" />
 
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 lg:px-12">
+      <header className="relative z-content flex items-center justify-between px-6 py-5 lg:px-12">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15">
             <ShieldCheck className="size-5 text-primary" />
@@ -39,7 +39,7 @@ export default async function HomePage() {
         </Button>
       </header>
 
-      <main className="relative z-10 flex flex-1 flex-col items-center px-6 pb-20 text-center">
+      <main className="relative z-content flex flex-1 flex-col items-center px-6 pb-20 text-center">
         <div className="flex w-full max-w-5xl flex-col items-center pt-16 lg:pt-24">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary-light backdrop-blur-sm">
             <Receipt className="size-3.5" />
@@ -48,7 +48,7 @@ export default async function HomePage() {
 
           <h1 className="max-w-3xl text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             {BRAND.headline.split(" ").slice(0, -1).join(" ")}{" "}
-            <span className="bg-gradient-to-r from-[#ff69b4] to-[#00ffff] bg-clip-text text-transparent">
+            <span className="text-primary">
               {BRAND.headline.split(" ").slice(-1)}.
             </span>
           </h1>
@@ -174,7 +174,7 @@ export default async function HomePage() {
         </div>
       </main>
 
-      <footer className="relative z-10 border-t border-border px-6 py-6 text-center lg:px-12">
+      <footer className="relative z-content border-t border-border px-6 py-6 text-center lg:px-12">
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs text-muted-foreground">
             {BRAND.domain} — {BRAND.tagline}

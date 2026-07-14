@@ -10,6 +10,7 @@ import type {
   PublicExhibitData,
   ReportData,
 } from "@/lib/report-data";
+import { pdfPalette as p } from "./pdf-palette";
 
 export type { PublicExhibitData, ReportData } from "@/lib/report-data";
 
@@ -35,9 +36,9 @@ const shared = StyleSheet.create({
     left: 48,
     right: 48,
     fontSize: 8,
-    color: "#999",
+    color: p.faint,
     textAlign: "center",
-    borderTop: "1 solid #ddd",
+    borderTop: `1 solid ${p.rule}`,
     paddingTop: 8,
   },
 });
@@ -51,7 +52,7 @@ const pub = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottom: "2 solid #111",
+    borderBottom: `2 solid ${p.ink}`,
     paddingBottom: 10,
     marginBottom: 20,
   },
@@ -59,8 +60,8 @@ const pub = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 6,
-    backgroundColor: "#111",
-    color: "#fff",
+    backgroundColor: p.ink,
+    color: p.paper,
     textAlign: "center",
     fontFamily: "Helvetica-Bold",
     fontSize: 14,
@@ -72,13 +73,13 @@ const pub = StyleSheet.create({
   },
   brandDomain: {
     fontSize: 8,
-    color: "#888",
+    color: p.faint,
   },
   exhibitLabel: {
     textAlign: "center",
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
-    letterSpacing: 2,
+    letterSpacing: 1,
     marginBottom: 2,
   },
   exhibitTitle: {
@@ -90,11 +91,11 @@ const pub = StyleSheet.create({
   preparedBy: {
     textAlign: "center",
     fontSize: 9,
-    color: "#666",
+    color: p.subtle,
     marginBottom: 24,
   },
   row: { flexDirection: "row", marginBottom: 4 },
-  label: { width: 210, color: "#555", fontSize: 9 },
+  label: { width: 210, color: p.muted, fontSize: 9 },
   value: { flex: 1, fontSize: 9 },
   valueMono: { flex: 1, fontFamily: "Courier", fontSize: 8 },
   scopeItem: {
@@ -102,28 +103,28 @@ const pub = StyleSheet.create({
     marginBottom: 4,
     fontSize: 10,
   },
-  scopeMark: { width: 16, color: "#111", fontFamily: "Helvetica-Bold" },
+  scopeMark: { width: 16, color: p.ink, fontFamily: "Helvetica-Bold" },
   scopeLabel: { flex: 1 },
   scopeStatus: {
     fontSize: 8,
-    color: "#888",
+    color: p.faint,
     fontFamily: "Helvetica-Oblique",
   },
   statusBox: {
     marginTop: 8,
     padding: 12,
     borderRadius: 4,
-    border: "1 solid #111",
-    backgroundColor: "#f7f7f7",
+    border: `1 solid ${p.ink}`,
+    backgroundColor: p.surfaceTint,
   },
-  statusLabel: { fontSize: 8, color: "#666", textTransform: "uppercase", letterSpacing: 1 },
+  statusLabel: { fontSize: 8, color: p.subtle, textTransform: "uppercase", letterSpacing: 1 },
   statusValue: { fontSize: 13, fontFamily: "Helvetica-Bold", marginTop: 2 },
-  limitation: { fontSize: 9, color: "#444", marginBottom: 4 },
+  limitation: { fontSize: 9, color: p.muted, marginBottom: 4 },
   supports: {
     marginTop: 10,
     fontSize: 9,
     fontFamily: "Helvetica-Oblique",
-    color: "#444",
+    color: p.muted,
   },
 });
 
@@ -231,7 +232,7 @@ const full = StyleSheet.create({
   courtCaption: {
     textAlign: "center",
     fontSize: 9,
-    color: "#555",
+    color: p.muted,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 4,
@@ -249,15 +250,15 @@ const full = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 20,
   },
-  hr: { borderBottom: "1 solid #ccc", marginVertical: 12 },
+  hr: { borderBottom: `1 solid ${p.rule}`, marginVertical: 12 },
   row: { flexDirection: "row", marginBottom: 3 },
-  label: { width: 190, color: "#555", fontSize: 9 },
+  label: { width: 190, color: p.muted, fontSize: 9 },
   value: { flex: 1, fontSize: 9 },
   valueMono: { flex: 1, fontFamily: "Courier", fontSize: 8 },
   scopeItem: { flexDirection: "row", marginBottom: 3, fontSize: 10 },
   scopeNum: { width: 18, fontFamily: "Helvetica-Bold" },
   scopeLabel: { flex: 1 },
-  scopeStatus: { fontSize: 8, color: "#888", fontFamily: "Helvetica-Oblique" },
+  scopeStatus: { fontSize: 8, color: p.faint, fontFamily: "Helvetica-Oblique" },
   summaryRow: { flexDirection: "row", marginBottom: 3 },
   summaryLabel: { width: 240, fontSize: 10 },
   summaryValue: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold" },
@@ -265,37 +266,37 @@ const full = StyleSheet.create({
     marginTop: 6,
     padding: 8,
     borderRadius: 4,
-    backgroundColor: "#f5f5f5",
-    border: "1 solid #ddd",
+    backgroundColor: p.surface,
+    border: `1 solid ${p.rule}`,
   },
-  finalStatusLabel: { fontSize: 9, color: "#555" },
+  finalStatusLabel: { fontSize: 9, color: p.muted },
   finalStatusValue: { fontSize: 11, fontFamily: "Helvetica-Bold" },
   exceptionItem: { marginBottom: 4, fontSize: 10 },
-  exceptionCite: { fontFamily: "Courier", fontSize: 9, color: "#333" },
+  exceptionCite: { fontFamily: "Courier", fontSize: 9, color: p.ink },
   warn: {
-    backgroundColor: "#fff8e1",
-    border: "1 solid #ffc107",
+    backgroundColor: p.warnFill,
+    border: `1 solid ${p.warnBorder}`,
     borderRadius: 4,
     padding: 8,
     marginBottom: 8,
   },
-  warnText: { fontSize: 8, color: "#856404" },
-  limitation: { fontSize: 9, color: "#444", marginBottom: 4 },
+  warnText: { fontSize: 8, color: p.warnText },
+  limitation: { fontSize: 9, color: p.muted, marginBottom: 4 },
   appendixHeader: {
     flexDirection: "row",
-    borderBottom: "1 solid #999",
+    borderBottom: `1 solid ${p.faint}`,
     paddingBottom: 4,
     marginBottom: 4,
     fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: p.bandFill,
   },
   appendixRow: {
     flexDirection: "row",
     fontSize: 7.5,
     marginBottom: 2,
     paddingBottom: 2,
-    borderBottom: "1 solid #eee",
+    borderBottom: `1 solid ${p.rowRule}`,
   },
   col: { paddingLeft: 3 },
   cParagraph: { width: "8%" },
@@ -307,7 +308,7 @@ const full = StyleSheet.create({
   cReview: { width: "11%" },
   cTime: { width: "20%" },
   signatureLine: { marginTop: 30, fontSize: 10 },
-  signatureDetail: { fontSize: 9, color: "#555", marginTop: 2 },
+  signatureDetail: { fontSize: 9, color: p.muted, marginTop: 2 },
 });
 
 function Identification({ data }: { data: ReportData }) {
@@ -445,7 +446,7 @@ function ExceptionsRemaining({ data }: { data: ReportData }) {
             <Text style={full.exceptionCite}>{exc.citationText}</Text>
           )}
           {exc.detail && (
-            <Text style={{ fontSize: 8, color: "#666" }}>{exc.detail}</Text>
+            <Text style={{ fontSize: 8, color: p.subtle }}>{exc.detail}</Text>
           )}
         </View>
       ))}
