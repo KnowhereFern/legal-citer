@@ -88,7 +88,7 @@ export function LegalPage({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,105,180,0.10),_transparent_50%)]" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-96 w-96 -translate-x-1/3 translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
 
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 lg:px-12">
+      <header className="relative z-content flex items-center justify-between px-6 py-5 lg:px-12">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15">
             <ShieldCheck className="size-5 text-primary" />
@@ -107,7 +107,7 @@ export function LegalPage({
         </Button>
       </header>
 
-      <main className="relative z-10 flex-1 px-6 pb-20 pt-8 lg:px-12">
+      <main className="relative z-content flex-1 px-6 pb-20 pt-8 lg:px-12">
         <article className="mx-auto max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             {title}
@@ -155,7 +155,7 @@ export function LegalPage({
         </article>
       </main>
 
-      <footer className="relative z-10 border-t border-border px-6 py-6 text-center lg:px-12">
+      <footer className="relative z-content border-t border-border px-6 py-6 text-center lg:px-12">
         <p className="text-xs text-muted-foreground">
           {BRAND.domain} — {BRAND.tagline}
         </p>

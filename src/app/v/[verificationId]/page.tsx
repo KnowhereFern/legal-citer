@@ -160,7 +160,7 @@ export default async function VerifyRecordPage({
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,105,180,0.08),_transparent_50%)]" />
 
-      <Link href="/" className="relative z-10 mb-8 flex items-center gap-2.5 focus-ring rounded-lg">
+      <Link href="/" className="relative z-content mb-8 flex items-center gap-2.5 focus-ring rounded-lg">
         <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15">
           <ShieldCheck className="size-5 text-primary" />
         </div>
@@ -169,7 +169,7 @@ export default async function VerifyRecordPage({
         </span>
       </Link>
 
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-content w-full max-w-lg">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">Verification Record</h1>
           {/* Self-sufficiency copy: a third-party viewer (clerk, judge,
@@ -194,24 +194,6 @@ export default async function VerifyRecordPage({
               </div>
               <span aria-hidden className="shrink-0">
                 {status.icon}
-              </span>
-            </div>
-            {/* Status legend — color alone is a deuteranopia hazard. One
-                compact line keys the three tones used in the card. */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <CheckCircle2 className="size-3.5 text-success" />
-                Verified
-              </span>
-              <span aria-hidden className="text-muted-foreground/50">·</span>
-              <span className="inline-flex items-center gap-1">
-                <AlertTriangle className="size-3.5 text-warning" />
-                Needs attention
-              </span>
-              <span aria-hidden className="text-muted-foreground/50">·</span>
-              <span className="inline-flex items-center gap-1">
-                <ShieldAlert className="size-3.5 text-destructive" />
-                Not cleared
               </span>
             </div>
           </CardHeader>

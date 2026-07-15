@@ -4,7 +4,11 @@ import { HYBRID_PIPELINE_STAGES } from "@/lib/pipeline-stages";
 import type { CheckResult, PipelineConfig } from "@/lib/types";
 
 import { runVerification } from "./pipeline/runner";
-import { SupportAnalyst } from "./support-analyst";
+import { ArtifactStore } from "./agents/citation-graph";
+import {
+  runAgentSupportAnalysis,
+  seedStoreFromFindings,
+} from "./agents/hybrid-core";
 import { computeScore } from "./scoring";
 
 const CASE_CITATION_PATTERN = /[A-Z][a-zA-Z'.\-]+ v\. [A-Z][a-zA-Z'.\-]+/;
@@ -112,49 +116,20 @@ export async function runHybridVerification(params: {
 
   await upsertStage(runId, HYBRID_PIPELINE_STAGES[1], "running");
 
-  const analyst = new SupportAnalyst(apiKey);
-  const resolvedSources = new Map<string, string>();
+  // Pre-seed an artifact store from the deterministic pipeline's already-
+  // resolved findings (no-duplicate-work contract), then run the multi-agent
+  // support analysis. Both steps live in the DB-free seam
+  // (agents/hybrid-core.ts); this function only adds Prisma persistence.
+  const store = new ArtifactStore();
+  const preSeededCount = seedStoreFromFindings(store, findings);
 
-  for (const finding of findings) {
-    if (
-      finding.checkType === "citation_existence" &&
-      finding.result === FINDING_RESULT.PASS &&
-      finding.citationText
-    ) {
-      resolvedSources.set(
-        finding.citationText,
-        finding.snippetUsed ?? ""
-      );
-    }
-  }
-
-  const supportFindings: CheckResult[] = [];
-
-  for (const citationText of caseLawCitations) {
-    const sourceContent = resolvedSources.get(citationText) ?? "";
-
-    const result = await analyst.analyzeCitation({
-      citation: { text: citationText },
-      sourceContent,
-      caseLawOnly: true,
+  const modelName = process.env.LLM_MODEL ?? "deepseek/deepseek-v4-pro";
+  const { findings: supportFindings, traces: citationTraces } =
+    await runAgentSupportAnalysis({
+      caseLawCitations,
+      store,
+      modelName,
     });
-
-    const checkResult: CheckResult = {
-      checkType: "proposition_support_analysis",
-      result:
-        result.propositionSupported === true
-          ? FINDING_RESULT.PASS
-          : result.propositionSupported === false
-            ? FINDING_RESULT.FAIL
-            : FINDING_RESULT.UNRESOLVED,
-      citationText: result.citationText,
-      isAiAssisted: true,
-      aiModelName: process.env.LLM_MODEL ?? "deepseek/deepseek-r1",
-      detail: result.analysis,
-    };
-
-    supportFindings.push(checkResult);
-  }
 
   await prisma.$transaction(
     supportFindings.map((finding) =>
@@ -177,6 +152,15 @@ export async function runHybridVerification(params: {
 
   await upsertStage(runId, HYBRID_PIPELINE_STAGES[1], "completed", {
     analyzedCitations: supportFindings.length,
+    passed: supportFindings.filter((f) => f.result === FINDING_RESULT.PASS).length,
+    failed: supportFindings.filter((f) => f.result === FINDING_RESULT.FAIL).length,
+    unresolved: supportFindings.filter((f) => f.result === FINDING_RESULT.UNRESOLVED).length,
+    errors: supportFindings.filter((f) => f.result === FINDING_RESULT.ERROR).length,
+    // Per-citation trace summary. Full event-level traces live in the agent
+    // system's runtime; this surface gives the report/audit log visibility
+    // into which citations the agents processed and whether each recovered.
+    citationTraces,
+    preSeededAuthorities: preSeededCount,
   });
 
   await upsertStage(runId, HYBRID_PIPELINE_STAGES[2], "running");

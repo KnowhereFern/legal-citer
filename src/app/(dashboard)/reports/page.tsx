@@ -112,7 +112,7 @@ export default async function ReportsPage() {
                         href={`/reports/${report.id}`}
                         className="focus-ring after:absolute after:inset-0 after:content-['']"
                       >
-                        <span className="relative z-10 font-medium">
+                        <span className="relative z-content font-medium">
                           {report.run.document.filename}
                         </span>
                       </Link>
@@ -123,7 +123,7 @@ export default async function ReportsPage() {
                       ) : null}
                     </TableCell>
                     <TableCell>
-                      <div className="relative z-10 inline-block">
+                      <div className="relative z-content inline-block">
                         {report.riskBand ? (
                           <RiskBadge value={report.riskBand} />
                         ) : (

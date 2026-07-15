@@ -32,7 +32,7 @@ export default function AuthLayout({
       <Link
         href="/"
         aria-label={`${BRAND.company} home`}
-        className="focus-ring relative z-10 mb-8 inline-flex min-h-11 items-center gap-2.5 rounded-lg px-1"
+        className="focus-ring relative z-content mb-8 inline-flex min-h-11 items-center gap-2.5 rounded-lg px-1"
       >
         <div className="flex size-9 items-center justify-center rounded-xl bg-primary/15">
           <ShieldCheck className="size-5 text-primary" />
@@ -42,9 +42,9 @@ export default function AuthLayout({
         </span>
       </Link>
 
-      <div className="relative z-10 w-full max-w-sm">{children}</div>
+      <div className="relative z-content w-full max-w-sm">{children}</div>
 
-      <p className="relative z-10 mt-8 text-center text-sm text-muted-foreground">
+      <p className="relative z-content mt-8 text-center text-sm text-muted-foreground">
         {BRAND.tagline}
       </p>
     </div>

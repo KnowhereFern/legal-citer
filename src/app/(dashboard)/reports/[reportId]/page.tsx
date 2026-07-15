@@ -195,7 +195,7 @@ export default async function ReportDetailPage({
             </div>
           </CardContent>
           <CardContent className="flex flex-col items-center gap-1 py-6 text-center">
-            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">
               EXHIBIT A
             </p>
             <h2 className="text-xl font-bold">AI Use &amp; Verification Summary</h2>
@@ -552,7 +552,7 @@ export default async function ReportDetailPage({
                   {exc.citationText && (
                     <div className="flex flex-col gap-1">
                       <p className="text-xs text-muted-foreground">You wrote:</p>
-                      <p className="border-l-2 border-border pl-3 font-mono text-sm">
+                      <p className="rounded-md bg-muted/50 px-3 py-2 font-mono text-sm break-words">
                         {exc.citationText}
                       </p>
                     </div>
