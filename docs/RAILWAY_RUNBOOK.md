@@ -133,3 +133,76 @@ The deployed test performs: Clerk login -> upload real DOCX fixture -> create ve
 - Railway Bucket traffic is public S3-compatible traffic; service-to-bucket egress is counted as service egress by Railway.
 - PACER and OpenRouter remain off unless explicitly configured.
 - If deployed E2E is run without a public/test-accessible staging database URL, setup and cleanup cannot seed or remove test data.
+
+## Sidelining (Power Down / Stand Up)
+
+Two scripts let you sideline the **production** environment (project `baddie-legal`) now and bring it back later, without deleting anything. They scale services to zero (hibernate), so compute billing stops while volumes, variables, services, and the custom domain stay attached.
+
+- `npm run powerdown` → `scripts/powerdown.mjs` — hibernate production.
+- `npm run standup` → `scripts/standup.mjs` — restore production from hibernate.
+
+Both target `baddie-legal` / `production` by name (hard-coded identifiers inside the scripts), so they can't accidentally act on another project or environment even if `railway link` is pointed elsewhere.
+
+### Prerequisite: ship a green deploy before powering down
+
+`powerdown.mjs` **refuses to run** unless the latest deploy of every production service is `SUCCESS`. This is deliberate: if you hibernate while the latest deploy is `FAILED`, the project will stand back up with broken code that doesn't match the latest commit.
+
+The most common blocker is the deploy-time guard (`scripts/guard-production-secrets.mjs`, wired into `npm run build`), which blocks production builds that still use `sk_test_*` Clerk keys or a placeholder `MANIFEST_SIGNING_KEY`. To get a green deploy before sidelining:
+
+1. In dashboard.clerk.com, create/select the **production** instance, add `baddielegal.com` to allowed origins, and create the webhook endpoint (URL `https://baddielegal.com/api/webhooks/clerk`).
+2. `node scripts/rotate-clerk-keys.mjs` — validates and sets `sk_live_*` / `pk_live_*` on both `legal-citer` and `worker-prod`, waits for redeploy, smoke-tests auth.
+3. Generate a strong manifest key and set it on both app services:
+   ```bash
+   openssl rand -hex 32
+   railway variables set --service legal-citer MANIFEST_SIGNING_KEY=<value>
+   railway variables set --service worker-prod MANIFEST_SIGNING_KEY=<value>
+   ```
+4. Set `CLERK_WEBHOOK_SECRET` on `legal-citer` to the production webhook's `whsec_*` (manual — see the note in the rotation script).
+5. Confirm both app services show `SUCCESS` and `baddielegal.com/sign-in` returns 200, then run `npm run powerdown`.
+
+### Powering down
+
+```bash
+npm run powerdown        # interactive — prompts for "yes"
+npm run powerdown -- --check   # pre-flight + plan only, no changes (safe to run any time)
+```
+
+What it does:
+
+1. **Pre-flight guards** — verifies Railway linkage (`baddie-legal` / `production`), that all four services exist, that the latest deploy of each is `SUCCESS`, and smoke-tests `/api/health` + `/sign-in`.
+2. **Safety backup → `./backups/`** (timestamped; gitignored):
+   - `postgres-production-<ts>.sql.gz` — `pg_dump` of production Postgres via `DATABASE_PUBLIC_URL` (needs `pg_dump` on PATH or Homebrew libpq at `/opt/homebrew/opt/libpq/bin/pg_dump`).
+   - `vars-production-<ts>.json` — every variable on all four services (contains live secrets — never commit).
+   - `powerdown-state-production-<ts>.json` (+ a `-latest` pointer) — service IDs, replica counts, deploy IDs, domain, timestamp. This is what `standup` reads.
+3. **Hibernate** — scales services to 0 in dependency-safe order: `legal-citer` → `worker-prod` → `Redis-3L9x` → `Postgres-gFXS`. The app drains before its database stops.
+
+Nothing is deleted. Volumes (Postgres ~160 MB, Redis ~170 MB), variables, the custom domain `baddielegal.com`, and the services themselves remain. Compute billing drops to zero; volume storage still bills.
+
+> Redis is not dumped — its queue/cache state is reprovisionable, and its URL is captured in the variable manifest. The S3 uploads bucket is external to Railway and is unaffected by power down.
+
+### Standing back up
+
+```bash
+npm run standup          # interactive — prompts for "yes"
+npm run standup -- --check    # show plan + current replica state, no changes
+```
+
+What it does:
+
+1. Loads `backups/powerdown-state-production-latest.json`.
+2. Scales services back to 1 replica in dependency order: `Postgres-gFXS` → `Redis-3L9x` (wait healthy) → `worker-prod` → `legal-citer`. **No redeploy** — hibernate preserves the last-successful image, so the running code after standup is the same `SUCCESS` deploy that was live before power down.
+3. Polls until all services are `Online`, then smoke-tests `/api/health` + `/sign-in`.
+
+If a service is missing at stand-up time, the script aborts with guidance — hibernate restore assumes the services still exist. To ship **new** code after standing up, push to `main` or run `railway up` (the normal deploy path); the standup script intentionally only restores replicas, it does not deploy.
+
+### What persists vs. what the backup protects
+
+| Resource | Persists across hibernate? | Backed up by powerdown? |
+| --- | --- | --- |
+| Production services + IDs | Yes | n/a |
+| Custom domain `baddielegal.com` | Yes | recorded in state.json |
+| Environment variables (live secrets) | Yes | `vars-production-*.json` |
+| Postgres volume (~160 MB) | Yes | `postgres-production-*.sql.gz` (safety snapshot) |
+| Redis volume (~170 MB) | Yes | not dumped (reprovisionable) |
+| S3 uploads bucket | Yes (external to Railway) | n/a |
+| Last-successful deploy image | Yes (basis of standup) | deploy IDs in state.json |

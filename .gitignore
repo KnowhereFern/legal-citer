@@ -16,6 +16,10 @@ uploads/
 next-env.d.ts
 
 outputs/
+
+# backups/ holds DB dumps + live secrets captured by powerdown.mjs — never commit.
+backups/
+
 scripts/
 !scripts/
 scripts/*
@@ -25,6 +29,8 @@ scripts/*
 !scripts/backfill-pipeline-stages.mjs
 !scripts/rotate-clerk-keys.mjs
 !scripts/guard-production-secrets.mjs
+!scripts/powerdown.mjs
+!scripts/standup.mjs
 run_story_builder
 Fern_Project_Proposals.xlsx
 
