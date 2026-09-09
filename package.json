@@ -17,6 +17,8 @@
     "test:ci": "npm run typecheck && npm run lint && npm run build && npm run test:e2e",
     "e2e:seed": "node scripts/seed-e2e.mjs",
     "e2e:cleanup": "node scripts/cleanup-e2e.mjs",
+    "powerdown": "node scripts/powerdown.mjs",
+    "standup": "node scripts/standup.mjs",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
